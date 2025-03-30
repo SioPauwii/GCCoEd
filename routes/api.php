@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\mainController;
 use App\Http\Controllers\LearnerController;
 use App\Http\Controllers\MentorController;
+use App\Http\Controllers\GdriveController;
 use App\Http\Middleware\checkRole;
 
 Route::post('/learner/register', [AuthController::class, 'learner_register']);
@@ -41,16 +42,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/mentor/delete', [MentorController::class, 'delAcc'])
     ->middleware(checkRole::class.':mentor');
 
+    Route::post('/mentor/upload', [GdriveController::class, 'store'])
+    ->middleware(checkRole::class.':mentor');
+
     // general admin functions
     
     // get all users
     Route::get('/admin', [mainController::class, 'retAll'])
     ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/mentors', [mainController::class, 'retAllMent'])
+    Route::get('/admin/mentor', [mainController::class, 'retAllMent'])
     ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/learners', [mainController::class, 'retAllLear'])
+    Route::get('/admin/learner', [mainController::class, 'retAllLear'])
     ->middleware(checkRole::class.':admin');
 
     // get one specific user
