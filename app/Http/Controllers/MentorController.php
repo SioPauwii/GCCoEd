@@ -39,8 +39,8 @@ class MentorController extends Controller
         return response()->json(['user' => $user, 'user_info' => $user_info]);
     }
 
-    public function editInfo(Request $request){
-
+    public function editInfo(Request $request)
+    {
         $authUser = Auth::user();
 
         $learner = Mentor::where('ment_inf_id', $authUser->id)->first();
@@ -49,25 +49,27 @@ class MentorController extends Controller
             return response()->json(['message' => 'Mentor record not found'], 404);
         }
 
-        $validateData = $request->validate([
-            'phoneNum' => 'required|string',
-            'city_muni' => 'required|string',
-            'brgy' => 'required|string',
-            'image' => 'string',
-            'course' => 'required|string',
-            'department' => 'required|string',
-            'year' => 'required|string',
-            'subjects' => 'required|array',
-            'proficiency' => 'required|string',
-            'learn_modality' => 'required|string',
-            'learn_sty' => 'required|string',
-            'availability' => 'required|array',
-            'prefSessDur' => 'required|string',
-            'bio' => 'required|string',
-            'goals' => 'required|string',
+        $request->validate([
+            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+            'city_muni' => 'required|string|max:255',
+            'brgy' => 'required|string|max:255',
+            'image' => 'nullable|string|url',
+            'course' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'year' => 'required|string|in:1st,2nd,3rd,4th',
+            'subjects' => 'required|array|min:1',
+            'subjects.*' => 'string|max:255',
+            'proficiency' => 'required|string|max:255',
+            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'teach_sty' => 'required|string|max:255',
+            'availability' => 'required|array|min:1',
+            'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'bio' => 'required|string|max:1000',
+            'exp' => 'required|string|max:1000',
         ]);
         
-        $learner->update($validateData);
+        $learner->update($request->all());
 
         return response()->json(['message' => 'Mentor information updated successfully']);
     }

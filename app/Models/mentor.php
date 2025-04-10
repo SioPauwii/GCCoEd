@@ -35,10 +35,12 @@ class Mentor extends Model
         'prefSessDur',
         'bio',
         'exp',
+        'credentials',
     ];
 
     protected $casts = [
         'subjects' => 'array', // Convert longtext to array
         'availability' => 'array', // Convert longtext to array
+        'credentials' => 'array', // Convert longtext to array
     ];
 }

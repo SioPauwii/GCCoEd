@@ -5,10 +5,12 @@ namespace App\Models;
 use Hoa\Event\Listens;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Notifications\Notifiable;
+ 
 
 class learner extends Model
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $table = 'learner_info'; // Change this if your table name is different
 

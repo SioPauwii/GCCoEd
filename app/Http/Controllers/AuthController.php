@@ -11,6 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\GdriveController;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\emailVerification;
 
 class AuthController extends Controller
 {
@@ -18,36 +22,47 @@ class AuthController extends Controller
     public function learner_register(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
+            'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|string',
-            'phoneNum' => 'required|string',
-            'city_muni' => 'required|string',
-            'brgy' => 'required|string',
-            'image' => 'string',
-            'course' => 'required|string',
-            'department' => 'required|string',
-            'year' => 'required|string',
-            'subjects' => 'required|array',
-            'learn_modality' => 'required|string',
-            'learn_sty' => 'required|string',
-            'availability' => 'required|array',
-            'prefSessDur' => 'required|string',
-            'bio' => 'required|string',
-            'goals' => 'required|string',
-
-            
+            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+            'city_muni' => 'required|string|max:255',
+            'brgy' => 'required|string|max:255',
+            'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
+            'course' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'year' => 'required|string|in:1st,2nd,3rd,4th',
+            'subjects' => 'required|array|min:1',
+            'subjects.*' => 'string|max:255',
+            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'learn_sty' => 'required|string|max:255',
+            'availability' => 'required|array|min:1',
+            'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'bio' => 'required|string|max:1000',
+            'goals' => 'required|string|max:1000',
         ]);
+
 
         DB::beginTransaction();
         try {
+            $verifToken = Str::random(64);
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->role
+                'role' => 'learner',
+                'email_verification_token' => $verifToken,
             ]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            $Gdrive = new GdriveController();
+            $imageID = $Gdrive->imageUp($request); 
+            $this->sendVerifEmail($user);
+
+            // event(new registered($user));
 
             $learner = Learner::create([
                 'learn_inf_id' => $user->id,
@@ -56,7 +71,7 @@ class AuthController extends Controller
                 'phoneNum' => $request->phoneNum,
                 'city_muni' => $request->city_muni,
                 'brgy' => $request->brgy,
-                'image' => $request->image,
+                'image' => $imageID,
                 'course' => $request->course,
                 'department' => $request->department,
                 'year' => $request->year,
@@ -69,9 +84,8 @@ class AuthController extends Controller
                 'goals' => $request->goals,
             ]);
 
-            $token = $user->createToken('auth_token')->plainTextToken;
-
             DB::commit();
+
             return response()->json([
                 'user' => $user,
                 'learner' => $learner,
@@ -86,37 +100,51 @@ class AuthController extends Controller
     public function mentor_register(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
+            'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|string',
-            'phoneNum' => 'required|string',
-            'city_muni' => 'required|string',
-            'brgy' => 'required|string',
-            'image' => 'string',
-            'course' => 'required|string',
-            'department' => 'required|string',
-            'year' => 'required|string',
-            'subjects' => 'required|array',
-            'proficiency' => 'required|string',
-            'learn_modality' => 'required|string',
-            'teach_sty' => 'required|string',
-            'availability' => 'required|array',
-            'prefSessDur' => 'required|string',
-            'bio' => 'required|string',
-            'exp' => 'required|string',
-
-            
+            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+            'city_muni' => 'required|string|max:255',
+            'brgy' => 'required|string|max:255',
+            'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
+            'course' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'year' => 'required|string|in:1st,2nd,3rd,4th',
+            'subjects' => 'required|array|min:1',
+            'subjects.*' => 'string|max:255',
+            'proficiency' => 'required|string|max:255',
+            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'teach_sty' => 'required|string|max:255',
+            'availability' => 'required|array|min:1',
+            'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'bio' => 'required|string|max:1000',
+            'exp' => 'required|string|max:1000',
+            'credentials' => 'required|array|min:1',
+            'credentials.*' => 'file|mimes:jpg,jpeg,png,docx,pdf|max:25600',
         ]);
+
 
         DB::beginTransaction();
         try {
+            $verifToken = Str::random(64);
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->role
+                'role' => 'mentor',
+                'email_verification_token' => $verifToken,
             ]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            $Gdrive = new GdriveController();
+            $imageID = $Gdrive->imageUp($request); 
+            $credID = $Gdrive->storeCreds($request);
+            $this->sendVerifEmail($user);
+
+            // event(new registered($user));
 
             $mentor = Mentor::create([
                 'ment_inf_id' => $user->id,
@@ -125,7 +153,7 @@ class AuthController extends Controller
                 'phoneNum' => $request->phoneNum,
                 'city_muni' => $request->city_muni,
                 'brgy' => $request->brgy,
-                'image' => $request->image,
+                'image' => $imageID,
                 'course' => $request->course,
                 'department' => $request->department,
                 'year' => $request->year,
@@ -137,11 +165,11 @@ class AuthController extends Controller
                 'prefSessDur' => $request->prefSessDur,
                 'bio' => $request->bio,
                 'exp' => $request->exp,
+                'credentials' => $credID,
             ]);
 
-            $token = $user->createToken('auth_token')->plainTextToken;
-
             DB::commit();
+
             return response()->json([
                 'user' => $user,
                 'mentor' => $mentor,
@@ -186,5 +214,12 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    public function sendVerifEmail($user){
+
+        $link = url('api/verify-email/'.$user->id.'/'.$user->email_verification_token);
+
+        Mail::to($user->email)->send(new emailVerification($user->id, $link));
     }
 }
