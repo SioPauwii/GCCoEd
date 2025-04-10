@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mentor_infos', function (Blueprint $table) {
+            $table->id('mentor_no');
             $table->foreignId('ment_inf_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
             $table->string('name');
             $table->string('email')->unique();

@@ -39,7 +39,26 @@ class LearnerController extends Controller
         return response()->json(['user' => $user, 'user_info' => $user_info]);
     }
 
-    public function editInfo(Request $request){
+    public function editInfo(Request $request)
+    {
+        $request->validate([
+            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+            'city_muni' => 'required|string|max:255',
+            'brgy' => 'required|string|max:255',
+            'image' => 'nullable|string|url',
+            'course' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'year' => 'required|string|in:1st,2nd,3rd,4th',
+            'subjects' => 'required|array|min:1',
+            'subjects.*' => 'string|max:255',
+            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'learn_sty' => 'required|string|max:255',
+            'availability' => 'required|array|min:1',
+            'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'bio' => 'required|string|max:1000',
+            'goals' => 'required|string|max:1000',
+        ]);
 
         $authUser = Auth::user();
 
