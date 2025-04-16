@@ -9,12 +9,14 @@ use App\Http\Controllers\LearnerController;
 use App\Http\Controllers\MentorController;
 use App\Http\Controllers\GdriveController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\MessageController;
 use App\Http\Middleware\checkRole;
 use App\Models\User;
 use App\Models\Schedule;
 use App\Models\Mentor;
 use App\Models\Learner;
 use App\Http\Controllers\emailNotifController;
+use App\Http\Middleware\AuthCookieHandler;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Log;
@@ -24,12 +26,14 @@ Route::post('/learner/register', [AuthController::class, 'learner_register']);
 
 Route::post('/mentor/register', [AuthController::class, 'mentor_register']);
 
+Route::post('/admin/register', [AuthController::class, 'createAdmin']);
+
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth.cookie','auth:sanctum', 'verified'])->group(function () {
 
     // learner functions
     Route::get('/learner/users', [LearnerController::class, 'retAllMent'])
@@ -105,8 +109,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //General protected routes
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+   
+    Route::post('/message/{receiver_id}', [MessageController::class, 'store'])
+    ->middleware('auth:sanctum'); // Ensure the user is authenticated
+
+    Route::get('/message/{receiver_id}', [MessageController::class, 'conversation'])
+    ->middleware('auth:sanctum');
 });
+
+
 Route::post('/imageUp', [GdriveController::class, 'imageUP']);
 Route::post('/send/session/reminder', [emailNotifController::class, 'SessionReminder']);
 
@@ -123,3 +134,9 @@ Route::get('/verify-email/{id}/{token}', function ($id, $token) {
 
     return response()->json(['message' => 'Email verified.']);
 });
+
+// Route::post('/message/{receiver_id}', [MessageController::class, 'store'])
+// ->middleware('auth:sanctum'); // Ensure the user is authenticated
+
+// Route::get('/message/{receiver_id}', [MessageController::class, 'conversation'])
+// ->middleware('auth:sanctum'); // Ensure the user is authenticated

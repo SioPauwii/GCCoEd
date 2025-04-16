@@ -15,6 +15,7 @@ use App\Http\Controllers\GdriveController;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\emailVerification;
+use Illuminate\Support\Facades\Cookie;
 
 class AuthController extends Controller
 {
@@ -26,19 +27,17 @@ class AuthController extends Controller
             'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
-            'city_muni' => 'required|string|max:255',
-            'brgy' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
             'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
             'course' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
-            'year' => 'required|string|in:1st,2nd,3rd,4th',
-            'subjects' => 'required|array|min:1',
-            'subjects.*' => 'string|max:255',
-            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',
+            'subjects' => 'required|string',
+            // 'subjects.*' => 'string|max:255',
+            'learn_modality' => 'required|string|in:Online,In-person,Hybrid',
             'learn_sty' => 'required|string|max:255',
-            'availability' => 'required|array|min:1',
-            'availability.*' => 'string|max:255',
-            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'availability' => 'required|string',
+            // 'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',
             'bio' => 'required|string|max:1000',
             'goals' => 'required|string|max:1000',
         ]);
@@ -69,16 +68,14 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phoneNum' => $request->phoneNum,
-                'city_muni' => $request->city_muni,
-                'brgy' => $request->brgy,
+                'address' => $request->address,
                 'image' => $imageID,
                 'course' => $request->course,
-                'department' => $request->department,
                 'year' => $request->year,
-                'subjects' => json_encode($request->subjects),
+                'subjects' => $request->subjects,
                 'learn_modality' => $request->learn_modality,
                 'learn_sty' => $request->learn_sty,
-                'availability' => json_encode($request->availability),
+                'availability' => $request->availability,
                 'prefSessDur' => $request->prefSessDur,
                 'bio' => $request->bio,
                 'goals' => $request->goals,
@@ -104,20 +101,18 @@ class AuthController extends Controller
             'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
-            'city_muni' => 'required|string|max:255',
-            'brgy' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
             'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
             'course' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
-            'year' => 'required|string|in:1st,2nd,3rd,4th',
-            'subjects' => 'required|array|min:1',
-            'subjects.*' => 'string|max:255',
-            'proficiency' => 'required|string|max:255',
-            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
+            'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',
+            'subjects' => 'required|string',
+            // 'subjects.*' => 'string|max:255',
+            'learn_modality' => 'required|string|in:Online,In-person,Hybrid',
             'teach_sty' => 'required|string|max:255',
-            'availability' => 'required|array|min:1',
-            'availability.*' => 'string|max:255',
-            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'availability' => 'required|string',
+            // 'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',
+            'proficiency' => 'required|string|max:255',
             'bio' => 'required|string|max:1000',
             'exp' => 'required|string|max:1000',
             'credentials' => 'required|array|min:1',
@@ -151,17 +146,15 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phoneNum' => $request->phoneNum,
-                'city_muni' => $request->city_muni,
-                'brgy' => $request->brgy,
+                'address' => $request->address,
                 'image' => $imageID,
                 'course' => $request->course,
-                'department' => $request->department,
                 'year' => $request->year,
-                'subjects' => json_encode($request->subjects),
+                'subjects' => $request->subjects,
                 'proficiency' => $request->proficiency,
                 'learn_modality' => $request->learn_modality,
                 'teach_sty' => $request->teach_sty,
-                'availability' => json_encode($request->availability),
+                'availability' => $request->availability,
                 'prefSessDur' => $request->prefSessDur,
                 'bio' => $request->bio,
                 'exp' => $request->exp,
@@ -181,6 +174,39 @@ class AuthController extends Controller
         }
     }
 
+    public function createAdmin(Request $request) {
+        $request->validate([
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
+            'email' => 'required|string|email|unique:users|max:255',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'admin',
+            ]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            $this->sendVerifEmail($user);
+
+            DB::commit();
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
+                'user_role' => $user->role,
+            ], 201);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Registration failed', 'message' => $e->getMessage()], 500);
+        } 
+    }
 
     //login
     public function login(Request $request)
@@ -200,16 +226,31 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $AuthCookie = cookie(
+            'Authorization',
+            $token,
+            14400, // 1 day in minutes
+            '/',
+            null,
+            false,
+            true,
+            false,
+            'None'
+        );
+        
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
-        ]);
+            'user_role' => $user->role
+        ])->cookie($AuthCookie);
     }
 
     //logout
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
+
+        cookie()->forget('Authorization');
 
         return response()->json([
             'message' => 'Logged out successfully',
