@@ -19,7 +19,7 @@ class LearnerController extends Controller
             $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
             return [
                 'user' => $user,
-                'mentor_info' => $mentorInfo
+                'mentor_infos' => $mentorInfo
             ];
         });
 

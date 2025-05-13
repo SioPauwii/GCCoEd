@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('creator_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreignId('participant_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('subject');
             $table->date('date');
             $table->time('time');
+            $table->string('location'); 
             $table->timestamps();
         });
     }

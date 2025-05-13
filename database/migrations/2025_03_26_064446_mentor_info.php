@@ -20,16 +20,17 @@ return new class extends Migration
             $table->string('address');
             $table->string('image')->nullable();
             $table->string('course');
-            $table->string('department');
             $table->string('year');
             $table->json('subjects')->nullable();
             $table->string('proficiency');
-            $table->string('learn-modality');
-            $table->string('teach-sty');
+            $table->string('learn_modality');
+            $table->string('teach_sty');
             $table->json('availability')->nullable();
             $table->string('prefSessDur')->nullable();
             $table->text('bio');
             $table->text('exp');
+            $table->longtext('credentials')->nullable();
+            $table->tinyInteger('approved')->default(0);
             $table->timestamps();
         });
     }

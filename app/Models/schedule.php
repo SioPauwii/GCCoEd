@@ -19,9 +19,22 @@ class Schedule extends Model
     protected $fillable = [
         'creator_id',
         'participant_id',
+        'subject',
         'date',
         'time',
+        'location',
     ];
+
+    public function mentor()
+    {
+        return $this->belongsTo(Mentor::class, 'participant_id', 'mentor_no');
+    }
+
+    // Relationship to Learner
+    public function learner()
+    {
+        return $this->belongsTo(Learner::class, 'creator_id', 'learn_inf_id');
+    }
 
     protected $casts = [
         //

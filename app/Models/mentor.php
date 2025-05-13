@@ -10,7 +10,7 @@ class Mentor extends Model
 {
     use HasFactory;
 
-    protected $table = 'mentor_info'; // Change this if your table name is different
+    protected $table = 'mentor_infos'; // Change this if your table name is different
 
     protected $primaryKey = 'mentor_no'; // Define primary key
 
@@ -19,6 +19,7 @@ class Mentor extends Model
     protected $fillable = [
         'ment_inf_id',
         'name',
+        'gender',
         'email',
         'phoneNum',
         'address',
@@ -40,5 +41,10 @@ class Mentor extends Model
         'subjects' => 'array', // Convert longtext to array
         'availability' => 'array', // Convert longtext to array
         'credentials' => 'array', // Convert longtext to array
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at',
     ];
 }

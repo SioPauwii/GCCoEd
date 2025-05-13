@@ -16,6 +16,7 @@ use App\Models\Schedule;
 use App\Models\Mentor;
 use App\Models\Learner;
 use App\Http\Controllers\emailNotifController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Middleware\AuthCookieHandler;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -32,12 +33,20 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 
+Route::post('/APILogin', [AuthController::class, 'apiLogin']);
 
-Route::middleware(['auth.cookie','auth:sanctum', 'verified'])->group(function () {
+
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    //image loader
+    Route::get('/image/{id}', [GdriveController::class, 'streamImg']);
 
     // learner functions
     Route::get('/learner/users', [LearnerController::class, 'retAllMent'])
     ->middleware(checkRole::class.':learner');
+
+    // Route::get('/learner/schedule', [ScheduleController::class, 'getSchedLearner'])
+    // ->middleware(checkRole::class.':learner');
 
     Route::get('/learner/users/{id}', [LearnerController::class, 'retOneMent'])
     ->middleware(checkRole::class.':learner');
@@ -53,8 +62,17 @@ Route::middleware(['auth.cookie','auth:sanctum', 'verified'])->group(function ()
 
     Route::post('/learner/scheduleCreate', [ScheduleController::class, 'setSched'])
     ->middleware(checkRole::class.':learner');
+    
+    Route::get('/learner/sched', [ScheduleController::class, 'getSchedLearner'])
+    ->middleware(checkRole::class.':learner');
+
+    Route::post('/learner/feedback/{id}', [FeedbackController::class, 'setFeedback'])
+    ->middleware(checkRole::class.':learner');
 
     // mentor functions
+    Route::get('/mentor/details', [MentorController::class, 'GetMentDeets'])
+    ->middleware(checkRole::class.':mentor');
+
     Route::get('/mentor/users', [MentorController::class, 'retAllLear'])
     ->middleware(checkRole::class.':mentor');
 
@@ -70,7 +88,16 @@ Route::middleware(['auth.cookie','auth:sanctum', 'verified'])->group(function ()
     Route::post('/mentor/file/upload', [GdriveController::class, 'store'])
     ->middleware(checkRole::class.':mentor');
 
+    Route::get('/mentor/files', [GdriveController::class, 'getMentorFiles'])
+    ->middleware(checkRole::class.':mentor');
+
     Route::delete('/mentor/file/delete/{id}', [GdriveController::class, 'delete'])
+    ->middleware(checkRole::class.':mentor');
+
+    Route::get('/mentor/schedule', [ScheduleController::class, 'getSchedMentor'])
+    ->middleware(checkRole::class.':mentor');
+
+    Route::get('/mentor/getFeedback', [FeedbackController::class, 'getFeedback'])
     ->middleware(checkRole::class.':mentor');
 
     // general admin functions
@@ -108,12 +135,29 @@ Route::middleware(['auth.cookie','auth:sanctum', 'verified'])->group(function ()
     ->middleware(checkRole::class.':admin');
 
     //General protected routes
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout/api', [AuthController::class, 'apiLogout']);
+
+    Route::post('/logout/web', [AuthController::class, 'webLogout']);
    
     Route::post('/message/{receiver_id}', [MessageController::class, 'store'])
     ->middleware('auth:sanctum'); // Ensure the user is authenticated
 
     Route::get('/message/{receiver_id}', [MessageController::class, 'conversation'])
+    ->middleware('auth:sanctum');
+
+    Route::post('/send/session/reminder/{id}', [ScheduleController::class, 'sendRem'])
+    ->middleware('auth:sanctum'); 
+
+    Route::post('/send/session/cancel/{id}', [ScheduleController::class, 'cancelSched'])
+    ->middleware('auth:sanctum');
+
+    Route::patch('/resched/{id}', [ScheduleController::class, 'editSched'])
+    ->middleware('auth:sanctum'); 
+
+    Route::get('/preview/file/{id}', [GdriveController::class, 'previewFile'])
+    ->middleware('auth:sanctum');   
+
+    Route::get('/download/file/{id}', [GdriveController::class, 'downloadFile'])
     ->middleware('auth:sanctum');
 });
 
