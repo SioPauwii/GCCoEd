@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\learner;
 use App\Models\mentor;
+use App\Http\Controllers\GdriveController;
 
 
 class MentorController extends Controller
@@ -18,8 +19,11 @@ class MentorController extends Controller
         $learners = $users->map(function ($user) {
             $learnerInfo = Learner::where('learn_inf_id', $user->id)->first();
             return [
-                'user' => $user,
-                'learner_info' => $learnerInfo
+                'image_id' => $learnerInfo->image,
+                'id' => $learnerInfo->learner_no,
+                'userName' => $user->name,
+                'yearLevel' => $learnerInfo->year,
+                'course' => $learnerInfo->course,                
             ];
         });
 
@@ -50,21 +54,22 @@ class MentorController extends Controller
         }
 
         $request->validate([
+            'name' => 'required|string|max:255',
+            'gender' => 'required|string|in:Male,Female,Non-binary,Other',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
-            'city_muni' => 'required|string|max:255',
-            'brgy' => 'required|string|max:255',
-            'image' => 'nullable|string|url',
+            'address' => 'required|string|max:255',
             'course' => 'required|string|max:255',
             'department' => 'required|string|max:255',
-            'year' => 'required|string|in:1st,2nd,3rd,4th',
-            'subjects' => 'required|array|min:1',
-            'subjects.*' => 'string|max:255',
+            'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',  // Changed year values
+            // 'subjects' => 'required|array|min:1',
+            'subjects.*' => 'required|string',
             'proficiency' => 'required|string|max:255',
-            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
-            'teach_sty' => 'required|string|max:255',
-            'availability' => 'required|array|min:1',
-            'availability.*' => 'string|max:255',
-            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
+            'learn_modality' => 'required|string|in:Online,In-person,Hybrid',  // Changed modality values
+            // 'teach_sty' => 'required|array|min:1',
+            'teach_sty.*' => 'required|string',
+            // 'availability' => 'required|array|min:1',
+            'availability' => 'required|string',
+            'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',  // Changed duration values
             'bio' => 'required|string|max:1000',
             'exp' => 'required|string|max:1000',
         ]);
@@ -87,5 +92,14 @@ class MentorController extends Controller
         $user->delete();
             
         return response()->json(['message' => 'Account deleted successfully']);
+    }
+
+    public function GetMentDeets(){
+        $user = Auth::user();
+        $ment = Mentor::where('ment_inf_id', $user->id)->first();
+
+        // $ment->image = 'https://drive.google.com/uc?export=view&id='.$ment->image;
+
+        return response()->json(['user' => $user, 'ment' => $ment]);
     }
 }

@@ -12,10 +12,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GdriveController;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\emailVerification;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -24,6 +26,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
+            'gender' => 'required|string|in:Male,Female,Non-binary,Other',
             'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
@@ -66,6 +69,7 @@ class AuthController extends Controller
             $learner = Learner::create([
                 'learn_inf_id' => $user->id,
                 'name' => $request->name,
+                'gender' => $request->gender,
                 'email' => $request->email,
                 'phoneNum' => $request->phoneNum,
                 'address' => $request->address,
@@ -98,6 +102,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|regex:/^[a-zA-Z\s]+$/',
+            'gender' => 'required|string|in:Male,Female,Non-binary,Other',
             'email' => 'required|string|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
@@ -144,6 +149,7 @@ class AuthController extends Controller
             $mentor = Mentor::create([
                 'ment_inf_id' => $user->id,
                 'name' => $request->name,
+                'gender' => $request->gender,
                 'email' => $request->email,
                 'phoneNum' => $request->phoneNum,
                 'address' => $request->address,
@@ -215,6 +221,38 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
+    
+        $throttleKey = Str::lower($request->input('email')) . '|' . $request->ip();
+    
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            throw ValidationException::withMessages([
+                'email' => ['Too many login attempts. Please try again in ' . RateLimiter::availableIn($throttleKey) . ' seconds.'],
+            ]);
+        }
+    
+        if (!Auth::guard('web')->attempt($request->only('email', 'password'), true)) {
+            RateLimiter::hit($throttleKey);
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+    
+        RateLimiter::clear($throttleKey);
+    
+        $request->session()->regenerate();
+    
+        return response()->json([
+            'message' => 'Login successful (cookie-based)',
+            'user' => Auth::guard('web')->user(),
+            'user_role' => Auth::guard('web')->user()->role
+        ]);
+    }
+
+    public function apiLogin(Request $request){
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
         $user = User::where('email', $request->email)->first();
 
@@ -225,35 +263,53 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
-
-        $AuthCookie = cookie(
-            'Authorization',
-            $token,
-            14400, // 1 day in minutes
-            '/',
-            null,
-            false,
-            true,
-            false,
-            'None'
-        );
         
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
             'user_role' => $user->role
-        ])->cookie($AuthCookie);
+        ]);
     }
 
+
     //logout
-    public function logout(Request $request)
+    public function apiLogout(Request $request)
     {
+        // Delete all tokens for the current user
         $request->user()->tokens()->delete();
 
+        return response()->json([
+            'message' => 'API logout successful'
+        ])->withHeaders([
+            'Access-Control-Allow-Credentials' => 'true',
+            'Access-Control-Allow-Origin' => config('cors.allowed_origins')
+        ]);
+    }
+
+    public function webLogout(Request $request)
+    {
+        // Delete all tokens for the current user if they exist
+        if ($request->user()) {
+            $request->user()->tokens()->delete();
+        }
+
+        // Handle web session logout
+        Auth::guard('web')->logout();
+        
+        // Invalidate the session
+        $request->session()->invalidate();
+        
+        // Regenerate CSRF token
+        $request->session()->regenerateToken();
+        
+        // Clear auth cookie
         cookie()->forget('Authorization');
 
         return response()->json([
-            'message' => 'Logged out successfully',
+            'message' => 'Web session logout successful'
+        ])->withHeaders([
+            'Access-Control-Allow-Credentials' => 'true',
+            'Access-Control-Allow-Origin' => config('cors.allowed_origins')
         ]);
     }
 

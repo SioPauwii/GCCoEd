@@ -13,9 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias([
-            'auth.cookie', \App\Http\Middleware\AuthCookieHandler::class
-        ]);
+        // $middleware->api(append:[
+        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        // ]);
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

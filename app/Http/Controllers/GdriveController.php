@@ -48,39 +48,67 @@ class GdriveController extends Controller
         $folder_id = '1gVJfdCriVQ0PILgqnE89IfnKOGf7NjTe';
 
         $request->validate([
-            'file' => 'file|required|mimes:jpg,jpeg,png,doc,docx,pdf|max:25600',
-            'file_name' => 'required',
+            // 'files' => 'required|array|min:1',
+            'files.*' => 'required|file|mimes:jpg,jpeg,png,doc,docx,pdf|max:25600',
         ]);
 
+        $uploadedFiles = $request->file('files');
+
         $accessToken = $this->token();
-        $name = $request->file->getClientOriginalName();
+        $file_ids = [];
 
-        $path = $request->file->getRealPath();
+        if(is_array($uploadedFiles)) {
+            foreach ($uploadedFiles as $file) {
+                $name = $file->getClientOriginalName();
+                $path = $file->getRealPath();
+                $sizeInKb = round($file->getSize() / 1024, 2); // Size in KB
 
-        $metadata = [
-            'name'=>$name,
-            'parents'=>[$folder_id]
-        ];
+                $metadata = [
+                    'name' => $name,
+                    'parents' => [$folder_id]
+                ];
 
-        $response=Http::withToken($accessToken)
-        ->attach('metadata',json_encode($metadata),'metadata.json')
-        ->attach('data',file_get_contents($path),$name)
-        ->post('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
+                $response = Http::withToken($accessToken)
+                    ->attach('metadata', json_encode($metadata), 'metadata.json')
+                    ->attach('data', file_get_contents($path), $name)
+                    ->post('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
 
-        if ($response->successful()) {
-            $file_id = json_decode($response->body())->id;
+                if ($response->successful()) {
+                    $file_id = json_decode($response->body())->id;
 
-            $uploadedfile = new Files;
-            $uploadedfile->user_id = Auth::user()->id;
-            $uploadedfile->file_name = $name;
-            $uploadedfile->name = $name;
-            $uploadedfile->fileid = $file_id;
-            $uploadedfile->save();
+                    // Get the MIME type of the file
+                    $mimeType = $file->getMimeType();
 
-            return response('File Uploaded to Google Drive');
+                    // Map MIME types to simpler file types
+                    $fileTypeMap = [
+                        'application/msword' => 'Word',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word',
+                        'application/pdf' => 'PDF',
+                        'image/jpeg' => 'JPG',
+                        'image/png' => 'PNG',
+                    ];
+
+                    // Default to 'Unknown' if MIME type is not in the map
+                    $fileType = $fileTypeMap[$mimeType] ?? 'Unknown';
+
+                    // Store the file details in the database
+                    $uploadedfile = new Files;
+                    $uploadedfile->owner_id = Auth::user()->id;
+                    $uploadedfile->file_name = $name;
+                    $uploadedfile->File_type = $fileType; // Store the simplified file type
+                    $uploadedfile->fileid = $file_id;
+                    $uploadedfile->file_size = $sizeInKb;
+                    $uploadedfile->save();
+
+                    $file_ids[] = $file_id;
+                }
+            }
         }
 
-        return response('Failed to Upload to Google Drive');
+        return response()->json([
+            'message' => 'Files uploaded successfully to Google Drive.',
+            'file_ids' => $file_ids,
+        ]);
     }
 
     public function show(Request $request, $userId)
@@ -126,6 +154,25 @@ class GdriveController extends Controller
             }
 
             return response('Failed to retrieve the file from Google Drive.', 500);
+        }
+
+        // Return the list of files as a response
+        return response()->json([
+            'message' => 'Files retrieved successfully.',
+            'files' => $files,
+        ], 200);
+    }
+
+    public function getMentorFiles()
+    {
+        $user = Auth::user();
+
+        // Retrieve files owned by the logged-in mentor
+        $files = Files::where('owner_id', $user->id)->get();
+
+        // Check if the mentor has any files
+        if ($files->isEmpty()) {
+            return response()->json(['message' => 'No files found for the logged-in mentor'], 404);
         }
 
         // Return the list of files as a response
@@ -213,6 +260,50 @@ class GdriveController extends Controller
         }
     }
 
+    public function retMentPfp($userID) {
+        $user = Mentor::where('ment_inf_id', $userID)->first();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+    
+        $file_id = $user->image;
+    
+        if (!$file_id) {
+            return response()->json(['message' => 'Image not found for the user'], 404);
+        }
+    
+        $accessToken = $this->token();
+    
+        // Get file metadata from Google Drive
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $accessToken,
+        ])->get("https://www.googleapis.com/drive/v3/files/{$file_id}?fields=webContentLink,webViewLink");
+    
+        if ($response->successful()) {
+            $data = json_decode($response->body(), true);
+            return response()->json([
+                'webContentLink' => $data['webContentLink'], // Direct download link
+                'webViewLink' => $data['webViewLink'],       // Viewable link
+            ]);
+        }
+    
+        return response()->json(['message' => 'Failed to retrieve image URL'], 500);
+    }
+
+    public function streamImg($file_id) {
+        $accessToken = $this->token();
+        
+        $response = Http::withToken($accessToken)
+        ->get("https://www.googleapis.com/drive/v3/files/{$file_id}",[
+            'alt' => 'media'
+        ]);
+
+        return response($response->body(), 200, [ 
+            'Content-Type' => $response->header('Content-Type'),
+        ]);
+    }
+
     public function storeCreds(Request $request) {
         $parent_id = '1TnFc_7Xo4f09eXNjpKgWbqGwNmSJuM_R';
 
@@ -244,5 +335,74 @@ class GdriveController extends Controller
         }
 
         return $file_ids;
+    }
+
+    public function previewFile($file_id)
+    {
+        $accessToken = $this->token();
+
+        $file = Files::where('id', $file_id)->first();
+
+        $id = $file->fileid;
+        // Get file metadata from Google Drive
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $accessToken,
+        ])->get("https://www.googleapis.com/drive/v3/files/{$id}?fields=webViewLink");
+
+        if ($response->successful()) {
+            $data = json_decode($response->body(), true);
+
+            // Return the webViewLink for previewing the file
+            return response()->json([
+                'message' => 'File preview link retrieved successfully.',
+                'webViewLink' => $data['webViewLink'], // Viewable link
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Failed to retrieve file preview link.',
+            'status' => $response->status(),
+            'error' => json_decode($response->body(), true), // Include the error details from the API
+        ], $response->status());
+    }
+
+    public function downloadFile($file_id)
+    {
+        $accessToken = $this->token();
+
+        // Retrieve the file record from the database
+        $file = Files::where('id', $file_id)->first();
+
+        if (!$file) {
+            return response()->json(['message' => 'File not found in the database.'], 404);
+        }
+
+        $googleFileId = $file->fileid;
+
+        // Make a request to Google Drive API to download the file
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $accessToken,
+        ])->get("https://www.googleapis.com/drive/v3/files/{$googleFileId}?alt=media");
+
+        if ($response->successful()) {
+            // Stream the file directly to the user's browser
+            return response($response->body(), 200, [
+                'Content-Type' => $response->header('Content-Type'),
+                'Content-Disposition' => 'attachment; filename="' . $file->file_name . '"',
+            ]);
+        }
+
+        // Log the error for debugging
+        Log::error('Failed to download file', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        // Return a detailed error response
+        return response()->json([
+            'message' => 'Failed to download file.',
+            'status' => $response->status(),
+            'error' => json_decode($response->body(), true), // Include the error details from the API
+        ], $response->status());
     }
 }

@@ -20,11 +20,10 @@ return new class extends Migration
             $table->string('address');
             $table->string('image')->nullable();
             $table->string('course');
-            $table->string('department');
             $table->string('year');
             $table->json('subjects')->nullable();
             $table->string('learn-modality');
-            $table->string('learn-sty');
+            $table->string('learn-sty');    
             $table->json('availability')->nullable();
             $table->string('prefSessDur')->nullable();
             $table->text('bio');

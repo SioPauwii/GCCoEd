@@ -21,6 +21,7 @@ class learner extends Model
     protected $fillable = [
         'learn_inf_id',
         'name',
+        'gender',
         'email',
         'phoneNum',
         'address',
@@ -39,5 +40,10 @@ class learner extends Model
     protected $casts = [
         'subjects' => 'array', // Convert longtext to array
         'availability' => 'array', // Convert longtext to array
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at',
     ];
 }
