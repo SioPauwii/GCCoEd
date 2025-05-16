@@ -35,13 +35,22 @@ Route::get('/login', [AuthController::class, 'login'])->name('login');
 
 Route::post('/APILogin', [AuthController::class, 'apiLogin']);
 
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::patch('/reset-password', [AuthController::class, 'resetPassword']);
+
+
+
+Route::middleware(['auth:sanctum'])->group(function () {
 
     //image loader
     Route::get('/image/{id}', [GdriveController::class, 'streamImg']);
 
     // learner functions
+
+    Route::get('/learner/details', [LearnerController::class, 'GetLearDeets'])
+    ->middleware(checkRole::class.':learner');
+
     Route::get('/learner/users', [LearnerController::class, 'retAllMent'])
     ->middleware(checkRole::class.':learner');
 
@@ -159,6 +168,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::get('/download/file/{id}', [GdriveController::class, 'downloadFile'])
     ->middleware('auth:sanctum');
+
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+
+
 });
 
 

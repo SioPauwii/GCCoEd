@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('files', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('owner_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->unsignedInteger('owner_id');
+            $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->string('file_name');
             $table->string('fileid');
             $table->string('File_type');

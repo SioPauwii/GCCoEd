@@ -18,9 +18,7 @@ class Mentor extends Model
 
     protected $fillable = [
         'ment_inf_id',
-        'name',
         'gender',
-        'email',
         'phoneNum',
         'address',
         'image',
@@ -35,16 +33,26 @@ class Mentor extends Model
         'bio',
         'exp',
         'credentials',
+        'rating_ave',
+        'account_status',
+        'approved',
     ];
 
     protected $casts = [
         'subjects' => 'array', // Convert longtext to array
         'availability' => 'array', // Convert longtext to array
         'credentials' => 'array', // Convert longtext to array
+        'rating_ave' => 'float'
     ];
 
     protected $hidden = [
         'created_at',
         'updated_at',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'ment_inf_id', 'id');
+    }
+
 }

@@ -20,9 +20,7 @@ class learner extends Model
 
     protected $fillable = [
         'learn_inf_id',
-        'name',
         'gender',
-        'email',
         'phoneNum',
         'address',
         'image',
@@ -35,7 +33,8 @@ class learner extends Model
         'prefSessDur',
         'bio',
         'goals',
-    ];
+        'account_status',
+    ];      
 
     protected $casts = [
         'subjects' => 'array', // Convert longtext to array
@@ -46,4 +45,10 @@ class learner extends Model
         'created_at',
         'updated_at',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'learn_inf_id', 'id');
+    }
+
 }

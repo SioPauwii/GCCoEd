@@ -14,8 +14,20 @@ return new class extends Migration
         if (!Schema::hasTable('user_feedback')) {
             Schema::create('user_feedback', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('reviewer_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
-                $table->foreignId('reviewee_id')->constrained('mentor_infos', 'mentor_no')->onDelete('cascade')->onUpdate('cascade');
+                $table->unsignedInteger('reviewer_id');
+                $table->foreign('reviewer_id')
+                      ->references('id')
+                      ->on('users')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
+                
+                $table->unsignedBigInteger('reviewee_id');
+                $table->foreign('reviewee_id')
+                      ->references('mentor_no')
+                      ->on('mentor_infos')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
+                
                 $table->text('feedback');
                 $table->integer('rating');
                 $table->timestamps();

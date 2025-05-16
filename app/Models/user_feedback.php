@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class user_feedback extends Model
 {
@@ -14,7 +15,12 @@ class user_feedback extends Model
         'reviewer_id',
         'reviewee_id',
         'feedback',
-        'rating',
+        'rating'
+    ];
+
+    protected $casts = [
+        'feedback' => 'string',
+        'rating' => 'integer'
     ];
 
     public function reviewee()
@@ -27,10 +33,4 @@ class user_feedback extends Model
     {
         return $this->belongsTo(Learner::class, 'reviewer_id', 'learn_inf_id');
     }
-
-
-    protected $casts = [
-        'comment' => 'string',
-        'rating' => 'integer',
-    ];
 }

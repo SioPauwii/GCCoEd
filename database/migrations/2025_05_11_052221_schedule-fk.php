@@ -13,10 +13,20 @@ return new class extends Migration
     {
         Schema::table('schedules', function (Blueprint $table) {
             if (!Schema::hasColumn('schedules', 'creator_id')) {
-                $table->foreignId('creator_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+                $table->unsignedInteger('creator_id')->after('id');
+                $table->foreign('creator_id')
+                      ->references('id')
+                      ->on('users')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
             }
             if (!Schema::hasColumn('schedules', 'participant_id')) {
-                $table->foreignId('participant_id')->constrained('mentor_infos', 'mentor_no')->onDelete('cascade')->onUpdate('cascade');
+                $table->unsignedBigInteger('participant_id')->after('creator_id');
+                $table->foreign('participant_id')
+                      ->references('mentor_no')
+                      ->on('mentor_infos')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
             }
         });
     }

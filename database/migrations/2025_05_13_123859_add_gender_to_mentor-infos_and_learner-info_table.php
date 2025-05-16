@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::table('mentor_infos', function (Blueprint $table) {
             $table->enum('gender', ['male', 'female', 'non-binary','other'])
                   ->default('female')
-                  ->after('name');
+                  ->before('phoneNum');
         });
 
         Schema::table('learner_info', function (Blueprint $table) {
             $table->enum('gender', ['male', 'female', 'non-binary', 'other'])
                   ->default('female')
-                  ->after('name');
-        });
+                  ->before('phoneNum');
+});
     }
 
     /**

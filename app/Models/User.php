@@ -14,6 +14,10 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
+    protected $table = 'users'; 
+    protected $primaryKey = 'id';
+    public $incrementing = false; 
+
     /**
      * The attributes that are mass assignable.
      *
@@ -54,4 +58,16 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if (!$user->password) {
+                $user->password = bcrypt($user->id_number . '_default');
+            }
+        });
+    }
+
 }
