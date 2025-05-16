@@ -42,62 +42,126 @@ class ScheduleController extends Controller
         ], 201);
     }
 
+    // public function getSchedLearner(Request $request)
+    // {
+    //     $user = Auth::user();
+
+    //     // Get today's date
+    //     $today = Carbon::today();
+
+    //     // Fetch schedules created by the user
+    //     $schedulesToday = Schedule::where('creator_id', $user->id)
+    //         ->whereDate('date', $today)
+    //         ->with(['mentor' => function ($query) {
+    //             $query->select('mentor_no', 'name');
+    //         }])
+    //         ->get();
+
+    //     $upcomingSchedules = Schedule::where('creator_id', $user->id)
+    //         ->whereDate('date', '>', $today)
+    //         ->with(['mentor' => function ($query) {
+    //             $query->select('mentor_no', 'name');
+    //         }])
+    //         ->get();
+
+    //     return response()->json([
+    //         'schedules_today' => $schedulesToday,
+    //         'upcoming_schedules' => $upcomingSchedules,
+    //     ], 200);
+    // }
     public function getSchedLearner(Request $request)
     {
         $user = Auth::user();
 
-        // Get today's date
+        $learner = Learner::where('learn_inf_id', $user->id)->first();
+        if (!$learner) {
+            return response()->json(['error' => 'Learner not found.'], 404);
+        }
+
+        $learnerId = $learner->learn_inf_id;
         $today = Carbon::today();
 
-        // Fetch schedules created by the user
-        $schedulesToday = Schedule::where('creator_id', $user->id)
+        $schedulesToday = Schedule::where('creator_id', $learnerId)
             ->whereDate('date', $today)
-            ->with(['mentor' => function ($query) {
-                $query->select('mentor_no', 'name');
+            ->with(['mentor.user' => function ($query) {
+                $query->select('id', 'name');
             }])
             ->get();
 
-        $upcomingSchedules = Schedule::where('creator_id', $user->id)
+        $upcomingSchedules = Schedule::where('creator_id', $learnerId)
             ->whereDate('date', '>', $today)
-            ->with(['mentor' => function ($query) {
-                $query->select('mentor_no', 'name');
+            ->with(['mentor.user' => function ($query) {
+                $query->select('id', 'name');
             }])
             ->get();
 
         return response()->json([
             'schedules_today' => $schedulesToday,
             'upcoming_schedules' => $upcomingSchedules,
-        ], 200);
+        ]);
     }
+
+    // public function getSchedMentor(Request $request)
+    // {
+    //     $user = Auth::user();
+
+    //     $mentId = Mentor::where('ment_inf_id', $user->id)->first()->mentor_no;
+
+    //     // Get today's date
+    //     $today = Carbon::today();
+
+    //     // Fetch schedules where the user is the participant (mentor)
+    //     $schedulesToday = Schedule::where('participant_id', $mentId)
+    //         ->whereDate('date', $today)
+    //         ->with(['learner' => function ($query) {
+    //             $query->select('learn_inf_id', 'name');
+    //         }])
+    //         ->get();
+
+    //     $upcomingSchedules = Schedule::where('participant_id', $mentId)
+    //         ->whereDate('date', '>', $today)
+    //         ->with(['learner' => function ($query) {
+    //             $query->select('learn_inf_id', 'name');
+    //         }])
+    //         ->get();
+
+    //     return response()->json([
+    //         'schedules_today' => $schedulesToday,
+    //         'upcoming_schedules' => $upcomingSchedules,
+    //     ], 200);
+    // }
     public function getSchedMentor(Request $request)
     {
         $user = Auth::user();
 
-        $mentId = Mentor::where('ment_inf_id', $user->id)->first()->mentor_no;
+        $mentor = Mentor::where('ment_inf_id', $user->id)->first();
+        if (!$mentor) {
+            return response()->json(['error' => 'Mentor not found.'], 404);
+        }
 
-        // Get today's date
+        $mentId = $mentor->mentor_no;
         $today = Carbon::today();
 
-        // Fetch schedules where the user is the participant (mentor)
         $schedulesToday = Schedule::where('participant_id', $mentId)
             ->whereDate('date', $today)
-            ->with(['learner' => function ($query) {
-                $query->select('learn_inf_id', 'name');
+            ->with(['learner.user' => function ($query) {
+                $query->select('id', 'name');
             }])
             ->get();
 
         $upcomingSchedules = Schedule::where('participant_id', $mentId)
             ->whereDate('date', '>', $today)
-            ->with(['learner' => function ($query) {
-                $query->select('learn_inf_id', 'name');
+            ->with(['learner.user' => function ($query) {
+                $query->select('id', 'name');
             }])
             ->get();
 
         return response()->json([
             'schedules_today' => $schedulesToday,
             'upcoming_schedules' => $upcomingSchedules,
-        ], 200);
+        ]);
     }
+
 
     public function sendRem(int $schedid){
         $sched = Schedule::where('id', $schedid)->first();
@@ -106,16 +170,14 @@ class ScheduleController extends Controller
 
         $loggedInUser = Auth::user();
 
-        $mentor = Mentor::where('ment_inf_id', $loggedInUser->id)->first();
-
         $userEmail = null;
 
         if($loggedInUser->role == 'learner'){
-            $userEmail = $mentorInf->email;
+            $userEmail = User::where('id', $mentorInf->ment_inf_id)->first()->email;
         } 
 
         if($loggedInUser->role == 'mentor'){
-            $userEmail = $learner->email;
+            $userEmail = User::where('id', $learner->learn_inf_id)->first()->email;
         }
 
         if (!$userEmail) {
@@ -138,11 +200,11 @@ class ScheduleController extends Controller
         $userEmail = null;
 
         if($loggedInUser->role == 'learner'){
-            $userEmail = $mentorInf->email;
+            $userEmail = User::where('id', $mentorInf->ment_inf_id)->first()->email;
         } 
 
         if($loggedInUser->role == 'mentor'){
-            $userEmail = $learner->email;
+            $userEmail = User::where('id', $learner->learn_inf_id)->first()->email;
         }
 
         if (!$userEmail) {
@@ -201,11 +263,11 @@ class ScheduleController extends Controller
         $userEmail = null;
 
         if ($loggedInUser->role == 'learner') {
-            $userEmail = $mentorInf->email;
+            $userEmail = User::where('id', $mentorInf->ment_inf_id)->first()->email;
         } 
 
         if ($loggedInUser->role == 'mentor') {
-            $userEmail = $learner->email;
+            $userEmail = User::where('id', $learner->learn_inf_id)->first()->email;
         }
 
         if (!$userEmail) {

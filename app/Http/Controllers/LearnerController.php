@@ -43,18 +43,17 @@ class LearnerController extends Controller
     {
         $request->validate([
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
-            'city_muni' => 'required|string|max:255',
-            'brgy' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
             'image' => 'nullable|string|url',
             'course' => 'required|string|max:255',
             'department' => 'required|string|max:255',
             'year' => 'required|string|in:1st,2nd,3rd,4th',
-            'subjects' => 'required|array|min:1',
-            'subjects.*' => 'string|max:255',
+            'subjects' => 'required|string',
+            // 'subjects.*' => 'string|max:255',
             'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
-            'learn_sty' => 'required|string|max:255',
-            'availability' => 'required|array|min:1',
-            'availability.*' => 'string|max:255',
+            'learn_sty' => 'required|string',
+            'availability' => 'required|string',
+            // 'availability.*' => 'string|max:255',
             'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
             'bio' => 'required|string|max:1000',
             'goals' => 'required|string|max:1000',
@@ -103,5 +102,14 @@ class LearnerController extends Controller
         $user->delete();
             
         return response()->json(['message' => 'Account deleted successfully']);
+    }
+
+    public function GetLearDeets(){
+        $user = Auth::user();
+        $learn = learner::where('learn_inf_id', $user->id)->first();
+
+        // $ment->image = 'https://drive.google.com/uc?export=view&id='.$ment->image;
+
+        return response()->json(['user' => $user, 'learn' => $learn]);
     }
 }

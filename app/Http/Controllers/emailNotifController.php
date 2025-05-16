@@ -25,7 +25,7 @@ class emailNotifController extends Controller
         $targetDate = now()->addDays(3)->toDateString();
 
         // Fetch all schedules between today and 3 days from now
-        $schedules = Schedule::whereBetween('date', [$currentDate, $targetDate])->get();
+        $schedules = Schedule::whereBetween('date', [$currentDate, $targetDate])->with(['learner.user:id,email', 'mentor.user:id,email'])->get();
 
         if ($schedules->isEmpty()) {
             return response()->json(['message' => 'No sessions scheduled in the next 3 days.'], 200);
@@ -33,8 +33,8 @@ class emailNotifController extends Controller
 
         foreach ($schedules as $schedule) {
             // Retrieve learner and mentor details
-            $learner = Learner::where('learn_inf_id', $schedule->creator_id)->first();
-            $mentor = Mentor::where('mentor_no', $schedule->participant_id)->first();
+            $learner = optional($schedule->learner->user)->email;
+            $mentor = optional($schedule->mentor->user)->email;
 
             if ($learner && $mentor) {
                 // Prepare session details
@@ -46,8 +46,8 @@ class emailNotifController extends Controller
                 ];
 
                 // Send the email
-                Mail::to($learner->email)->send(new LearnerSessionReminderMail($sessionDeets));
-                Mail::to($mentor->email)->send(new MentorSessionReminderMail($sessionDeets));
+                Mail::to($learner)->send(new LearnerSessionReminderMail($sessionDeets));
+                Mail::to($mentor)->send(new MentorSessionReminderMail($sessionDeets));
             }
         }
 

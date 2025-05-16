@@ -54,7 +54,6 @@ class MentorController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
             'gender' => 'required|string|in:Male,Female,Non-binary,Other',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
             'address' => 'required|string|max:255',
@@ -62,11 +61,11 @@ class MentorController extends Controller
             'department' => 'required|string|max:255',
             'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',  // Changed year values
             // 'subjects' => 'required|array|min:1',
-            'subjects.*' => 'required|string',
+            'subjects' => 'required|string',
             'proficiency' => 'required|string|max:255',
             'learn_modality' => 'required|string|in:Online,In-person,Hybrid',  // Changed modality values
             // 'teach_sty' => 'required|array|min:1',
-            'teach_sty.*' => 'required|string',
+            'teach_sty' => 'required|string',
             // 'availability' => 'required|array|min:1',
             'availability' => 'required|string',
             'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',  // Changed duration values

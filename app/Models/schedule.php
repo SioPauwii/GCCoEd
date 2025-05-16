@@ -27,15 +27,16 @@ class Schedule extends Model
 
     public function mentor()
     {
-        return $this->belongsTo(Mentor::class, 'participant_id', 'mentor_no');
+        return $this->belongsTo(Mentor::class, 'participant_id', 'mentor_no')->with('user');
     }
 
     // Relationship to Learner
     public function learner()
     {
-        return $this->belongsTo(Learner::class, 'creator_id', 'learn_inf_id');
+        return $this->belongsTo(Learner::class, 'creator_id', 'learn_inf_id')->with('user');
     }
 
+    
     protected $casts = [
         //
     ];
