@@ -25,7 +25,7 @@ use App\Mail\passReset;
 class AuthController extends Controller
 {
     //register
-    public function learner_register(Request $request)
+public function learner_register(Request $request)
 {
     $validated = $request->validate([
         'gender' => 'required|string|in:Male,Female,Non-binary,Other',
@@ -51,9 +51,9 @@ class AuthController extends Controller
         return response()->json(['error' => 'Unauthenticated.'], 401);
     }
 
-    if ($user->role !== null && $user->role !== 'learner') {
-        return response()->json(['error' => 'User already has a different role.'], 403);
-    }
+    // if ($user->role !== null && $user->role !== 'learner') {
+    //     return response()->json(['error' => 'User already has a different role.'], 403);
+    // }
 
     if (Learner::where('learn_inf_id', $user->id)->exists()) {
         return response()->json(['error' => 'Learner profile already exists.'], 409);
@@ -136,9 +136,7 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthenticated.'], 401);
         }
 
-        if ($user->role !== null && $user->role !== 'mentor') {
-            return response()->json(['error' => 'User already has a different role.'], 403);
-        }
+        // s
 
         if (Mentor::where('ment_inf_id', $user->id)->exists()) {
             return response()->json(['error' => 'Mentor profile already exists.'], 409);
@@ -386,6 +384,7 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json([
                 'error' => 'No account found matching all provided credentials'
+
             ], 404);
         }
 
@@ -484,6 +483,234 @@ class AuthController extends Controller
                 'error' => 'Failed to send reset email',
                 'message' => $e->getMessage()
             ], 500);
+        }
+    }
+    public function setSecondaryRole()
+    {
+        // $request->validate([
+        //     'secondary_role' => 'required|string|in:learner,mentor',
+        // ]);
+
+        $user = Auth::user();
+
+        $user_info = User::where('id', $user->id)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        // Check if the user already has a secondary role
+        if ($user->secondary_role !== null) {
+            return response()->json(['error' => 'User already has a secondary role.'], 403);
+        }
+
+        if ($user->role !== null && $user->secondary_role !== null) {
+            return response()->json(['error' => 'User already holds both roles.'], 403);
+        }
+
+        if ($user->role !== null && $user->role === 'learner') {
+            $user_info->update(['secondary_role' => 'mentor']);
+            return response()->json(['message' => 'Secondary role set to mentor successfully.']);
+        }
+
+        if ($user->role !== null && $user->role === 'mentor') {
+            $user_info->update(['secondary_role' => 'learner']);
+            return response()->json(['message' => 'Secondary role set to learner successfully.']);
+        }
+
+        // Update the user's secondary role
+        // $user_info->update(['secondary_role' => $request->secondary_role]);
+
+        return response()->json(['error' => 'Failed to set secondary role.'], 403);
+    }
+
+    public function switchRole()
+    {
+        $user = Auth::user();
+        $user_info = User::where('id', $user->id)->first();
+
+        // Check if user has both roles
+        if (!$user->secondary_role) {
+            return response()->json([
+                'error' => 'You do not have a secondary role to switch to.'
+            ], 403);
+        }
+
+        // Swap the roles
+        $temp = $user_info->role;
+        $user_info->role = $user_info->secondary_role;
+        $user_info->secondary_role = $temp;
+        $user_info->save();
+
+        // Logout user
+        Auth::guard('web')->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return response()->json([
+            'message' => 'Roles switched successfully. Please login again.',
+            'new_primary_role' => $user_info->role
+        ]);
+    }
+    public function secondary_learner_register(Request $request)
+{
+    $validated = $request->validate([
+        'gender' => 'required|string|in:Male,Female,Non-binary,Other',
+        'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+        'address' => 'required|string|max:255',
+        'image' => 'required|file|mimes:jpg,jpeg,png|max:2048',
+        'course' => 'required|string|max:255',
+        'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',
+        'subjects' => 'required|string',
+        'learn_modality' => 'required|string|in:Online,In-person,Hybrid',
+        'learn_sty' => 'required|string|max:255',
+        'availability' => 'required|string',
+        'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',
+        'bio' => 'required|string|max:1000',
+        'goals' => 'required|string|max:1000',
+    ]);
+
+    $user = Auth::user();
+
+    $user_info = User::where('id', $user->id)->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'Unauthenticated.'], 401);
+    }
+
+    // if ($user->role !== null && $user->role !== 'learner') {
+    //     return response()->json(['error' => 'User already has a different role.'], 403);
+    // }
+
+    if (Learner::where('learn_inf_id', $user->id)->exists()) {
+        return response()->json(['error' => 'Learner profile already exists.'], 409);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // Update user role
+        // $user_info->update(['role' => 'learner']);
+
+        // Handle file upload via your controller
+        $Gdrive = new GdriveController();
+        $imageID = $Gdrive->imageUp($request);
+
+        // Save learner-specific data
+        $learner = Learner::create([
+            'learn_inf_id' => $user->id,
+            'gender' => $validated['gender'],
+            'phoneNum' => $validated['phoneNum'],
+            'address' => $validated['address'],
+            'image' => $imageID,
+            'course' => $validated['course'],
+            'year' => $validated['year'],
+            'subjects' => $validated['subjects'],
+            'learn_modality' => $validated['learn_modality'],
+            'learn_sty' => $validated['learn_sty'],
+            'availability' => $validated['availability'],
+            'prefSessDur' => $validated['prefSessDur'],
+            'bio' => $validated['bio'],
+            'goals' => $validated['goals'],
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'user' => $user,
+            'learner' => $learner,
+        ], 201);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json([
+            'error' => 'Registration failed',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+    public function secondary_mentor_register(Request $request)
+    {
+        $request->validate([
+            // 'role' => 'required|string|in:learner,mentor,admin', 
+            'gender' => 'required|string|in:Male,Female,Non-binary,Other',
+            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
+            'address' => 'required|string|max:255',
+            'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
+            'course' => 'required|string|max:255',
+            'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',
+            'subjects' => 'required|string',
+            // 'subjects.*' => 'string|max:255',
+            'learn_modality' => 'required|string|in:Online,In-person,Hybrid',
+            'teach_sty' => 'required|string|max:255',
+            'availability' => 'required|string',
+            // 'availability.*' => 'string|max:255',
+            'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',
+            'proficiency' => 'required|string|max:255',
+            'bio' => 'required|string|max:1000',
+            'exp' => 'required|string|max:1000',
+            'credentials' => 'required|array|min:1',
+            'credentials.*' => 'file|mimes:jpg,jpeg,png,docx,pdf|max:25600',
+        ]);
+
+
+       $user = Auth::user();
+
+        $user_info = User::where('id', $user->id)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        // s
+
+        if (Mentor::where('ment_inf_id', $user->id)->exists()) {
+            return response()->json(['error' => 'Mentor profile already exists.'], 409);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Update user role
+            // $user_info->update(['role' => 'mentor']);
+
+            // Handle file upload via your controller
+            $Gdrive = new GdriveController();
+            $imageID = $Gdrive->imageUp($request);
+            $credID = $Gdrive->storeCreds($request);
+            // $this->sendVerifEmail($user);
+
+            // event(new registered($user));
+
+            $mentor = Mentor::create([
+                'ment_inf_id' => $user->id,
+                'gender' => $request->gender,
+                'phoneNum' => $request->phoneNum,
+                'address' => $request->address,
+                'image' => $imageID,
+                'course' => $request->course,
+                'year' => $request->year,
+                'subjects' => $request->subjects,
+                'proficiency' => $request->proficiency,
+                'learn_modality' => $request->learn_modality,
+                'teach_sty' => $request->teach_sty,
+                'availability' => $request->availability,
+                'prefSessDur' => $request->prefSessDur,
+                'bio' => $request->bio,
+                'exp' => $request->exp,
+                'credentials' => $credID,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'user' => $user,
+                'mentor' => $mentor,
+            ], 201);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Registration failed', 'message' => $e->getMessage()], 500);
         }
     }
 }

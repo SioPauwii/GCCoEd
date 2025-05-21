@@ -12,6 +12,7 @@ class user_feedback extends Model
     public $timestamps = true; // Disable timestamps if not used
 
     protected $fillable = [
+        'schedule_id',
         'reviewer_id',
         'reviewee_id',
         'feedback',
@@ -32,5 +33,10 @@ class user_feedback extends Model
     public function reviewer()
     {
         return $this->belongsTo(Learner::class, 'reviewer_id', 'learn_inf_id');
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class, 'schedule_id', 'id');
     }
 }

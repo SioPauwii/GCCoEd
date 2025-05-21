@@ -7,20 +7,37 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\user_feedback as Feedback;
 use App\Models\Mentor;
+use App\Models\Schedule;
 use Illuminate\Support\Facades\DB;
 
 
 
 class FeedbackController extends Controller
 {
-    public function setFeedback(Request $request, $id) {
+    public function setFeedback(Request $request, $schedule_id) 
+    {
         $user = Auth::user();
-        $mentor = Mentor::where("mentor_no", $id)->first();
         
-        if (!$mentor) {
+        // Get the schedule and check if it exists
+        $schedule = Schedule::where('id', $schedule_id)
+            // ->whereDate('date', '<', now()) // Only allow feedback for past sessions
+            ->first();
+        
+        if (!$schedule) {
             return response()->json([
-                "message" => "Mentor not found",
+                "message" => "Schedule not found or session hasn't occurred yet",
             ], 404);
+        }
+
+        // Check if feedback already exists
+        $existingFeedback = Feedback::where('schedule_id', $schedule_id)
+            ->where('reviewer_id', $user->id)
+            ->exists();
+
+        if ($existingFeedback) {
+            return response()->json([
+                "message" => "Feedback already submitted for this session",
+            ], 400);
         }
         
         $request->validate([
@@ -32,18 +49,20 @@ class FeedbackController extends Controller
             // Begin transaction
             DB::beginTransaction();
 
-            // Create feedback
+            // Create feedback using participant_id from schedule as reviewee_id
             Feedback::create([
+                "schedule_id" => $schedule_id,
                 "reviewer_id" => $user->id,
-                "reviewee_id" => $mentor->mentor_no,
+                "reviewee_id" => $schedule->participant_id,
                 "feedback" => $request->feedback,
                 "rating" => $request->rating
             ]);
 
             // Update mentor's rating average immediately
-            $avgRating = Feedback::where('reviewee_id', $mentor->mentor_no)
+            $avgRating = Feedback::where('reviewee_id', $schedule->participant_id)
                 ->avg('rating');
             
+            $mentor = Mentor::where('mentor_no', $schedule->participant_id)->first();
             $mentor->rating_ave = round($avgRating, 1);
             $mentor->save();
 
