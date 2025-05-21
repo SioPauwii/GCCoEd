@@ -279,4 +279,51 @@ class ScheduleController extends Controller
 
         return response()->json(['message' => 'Schedule updated and email sent successfully'], 200);
     }
+
+    public function getSchedLear4RevU()
+    {
+        $user = Auth::user();
+
+        $learner = Learner::where('learn_inf_id', $user->id)->first();
+        if (!$learner) {
+            return response()->json(['error' => 'Learner not found.'], 404);
+        }
+
+        $learnerId = $learner->learn_inf_id;
+        $today = Carbon::today();
+
+        $schedulesDone = Schedule::where('creator_id', $learnerId)
+            ->whereDate('date', '<', $today)
+            ->with(['mentor' => function ($query) {
+                $query->select('mentor_no', 'ment_inf_id', 'course', 'year', 'image')
+                ->with(['user' => function ($query) {
+                    $query->select('id', 'name');
+                }]);
+            }])
+            ->get()
+            ->map(function ($schedule) use ($user) {
+                // Check for feedback and get it if it exists
+                $feedback = \App\Models\user_feedback::where('schedule_id', $schedule->id)
+                    ->where('reviewer_id', $user->id)
+                    ->where('reviewee_id', $schedule->participant_id)
+                    ->first();
+                
+                $schedule->has_feedback = !is_null($feedback);
+                
+                // If feedback exists, add it to the schedule object
+                if ($schedule->has_feedback) {
+                    $schedule->feedback = [
+                        'rating' => $feedback->rating,
+                        'feedback' => $feedback->feedback,
+                        'created_at' => $feedback->created_at
+                    ];
+                }
+                
+                return $schedule;
+            });
+
+        return response()->json([
+            'schedules_done' => $schedulesDone,
+        ]);
+    }
 }

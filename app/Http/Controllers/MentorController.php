@@ -14,7 +14,7 @@ use App\Http\Controllers\GdriveController;
 class MentorController extends Controller
 {
     public function retAllLear(){
-        $users = User::where('role', 'learner')->get();
+        $users = User::where('role', 'learner')->orWhere('secondary_role', 'learner')->get();
         
         $learners = $users->map(function ($user) {
             $learnerInfo = Learner::where('learn_inf_id', $user->id)->first();

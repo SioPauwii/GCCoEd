@@ -27,11 +27,15 @@ Route::post('/learner/register', [AuthController::class, 'learner_register']);
 
 Route::post('/mentor/register', [AuthController::class, 'mentor_register']);
 
+Route::post('/learner/register/2nd', [AuthController::class, 'secondary_learner_register']);
+
+Route::post('/mentor/register/2nd', [AuthController::class, 'secondary_mentor_register']);
+
 Route::post('/admin/register', [AuthController::class, 'createAdmin']);
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::get('/login', [AuthController::class, 'login'])->name('login');
+// Route::get('/login', [AuthController::class, 'login'])->name('login');
 
 Route::post('/APILogin', [AuthController::class, 'apiLogin']);
 
@@ -76,6 +80,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     ->middleware(checkRole::class.':learner');
 
     Route::post('/learner/feedback/{id}', [FeedbackController::class, 'setFeedback'])
+    ->middleware(checkRole::class.':learner');
+
+    Route::get('/learner/doneSched', [ScheduleController::class, 'getSchedLear4RevU'])
     ->middleware(checkRole::class.':learner');
 
     // mentor functions
@@ -171,6 +178,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
+    Route::post('/set/2nd_role', [AuthController::class, 'setSecondaryRole']);
+
+    Route::post("/switch", [AuthController::class, 'switchRole']);
 
 });
 
