@@ -41,24 +41,6 @@ class LearnerController extends Controller
 
     public function editInfo(Request $request)
     {
-        $request->validate([
-            'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
-            'address' => 'required|string|max:255',
-            'image' => 'nullable|string|url',
-            'course' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
-            'year' => 'required|string|in:1st,2nd,3rd,4th',
-            'subjects' => 'required|string',
-            // 'subjects.*' => 'string|max:255',
-            'learn_modality' => 'required|string|in:online,face-to-face,hybrid',
-            'learn_sty' => 'required|string',
-            'availability' => 'required|string',
-            // 'availability.*' => 'string|max:255',
-            'prefSessDur' => 'required|string|in:3hrs,1hr,2hrs',
-            'bio' => 'required|string|max:1000',
-            'goals' => 'required|string|max:1000',
-        ]);
-
         $authUser = Auth::user();
 
         $learner = Learner::where('learn_inf_id', $authUser->id)->first();
@@ -67,24 +49,23 @@ class LearnerController extends Controller
             return response()->json(['message' => 'Learner record not found'], 404);
         }
 
-        $validateData = $request->validate([
-            'phoneNum' => 'required|string',
-            'city_muni' => 'required|string',
-            'brgy' => 'required|string',
-            'image' => 'string',
-            'course' => 'required|string',
-            'department' => 'required|string',
-            'year' => 'required|string',
-            'subjects' => 'required|array',
-            'learn_modality' => 'required|string',
-            'learn_sty' => 'required|string',
-            'availability' => 'required|array',
-            'prefSessDur' => 'required|string',
-            'bio' => 'required|string',
-            'goals' => 'required|string',
+        $request->validate([
+            'gender' => 'nullable|string|in:Male,Female,Non-binary,Other,male,female,non-binary,other',
+            'phoneNum' => 'nullable|string|regex:/^\+?[0-9]{10,15}$/',
+            'address' => 'nullable|string|max:255',
+            'course' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
+            'year' => 'nullable|string|in:1st Year,2nd Year,3rd Year,4th Year',
+            'subjects' => 'nullable|string',
+            'learn_modality' => 'nullable|string|in:Online,In-person,Hybrid',
+            'learn_sty' => 'nullable|string',
+            'availability' => 'nullable|string',
+            'prefSessDur' => 'nullable|string|in:1 hour,2 hours,3 hours',
+            'bio' => 'nullable|string|max:1000',
+            'goals' => 'nullable|string|max:1000'
         ]);
         
-        $learner->update($validateData);
+        $learner->update($request->all());
 
         return response()->json(['message' => 'Learner information updated successfully']);
     }

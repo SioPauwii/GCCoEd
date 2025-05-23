@@ -71,4 +71,12 @@ class User extends Authenticatable implements MustVerifyEmail
         });
     }
 
+    public function mentor()
+    {
+        return $this->hasOne(Mentor::class, 'ment_inf_id', 'id');
+    }
+    public function learner()
+    {
+        return $this->hasOne(Learner::class, 'learn_inf_id', 'id');
+    }
 }
