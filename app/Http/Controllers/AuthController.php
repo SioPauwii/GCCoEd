@@ -633,7 +633,6 @@ public function learner_register(Request $request)
     public function secondary_mentor_register(Request $request)
     {
         $request->validate([
-            // 'role' => 'required|string|in:learner,mentor,admin', 
             'gender' => 'required|string|in:Male,Female,Non-binary,Other',
             'phoneNum' => 'required|string|regex:/^\+?[0-9]{10,15}$/',
             'address' => 'required|string|max:255',
@@ -641,11 +640,9 @@ public function learner_register(Request $request)
             'course' => 'required|string|max:255',
             'year' => 'required|string|in:1st Year,2nd Year,3rd Year,4th Year',
             'subjects' => 'required|string',
-            // 'subjects.*' => 'string|max:255',
             'learn_modality' => 'required|string|in:Online,In-person,Hybrid',
             'teach_sty' => 'required|string|max:255',
             'availability' => 'required|string',
-            // 'availability.*' => 'string|max:255',
             'prefSessDur' => 'required|string|in:1 hour,2 hours,3 hours',
             'proficiency' => 'required|string|max:255',
             'bio' => 'required|string|max:1000',
@@ -654,16 +651,12 @@ public function learner_register(Request $request)
             'credentials.*' => 'file|mimes:jpg,jpeg,png,docx,pdf|max:25600',
         ]);
 
-
-       $user = Auth::user();
-
+        $user = Auth::user();
         $user_info = User::where('id', $user->id)->first();
 
         if (!$user) {
             return response()->json(['error' => 'Unauthenticated.'], 401);
         }
-
-        // s
 
         if (Mentor::where('ment_inf_id', $user->id)->exists()) {
             return response()->json(['error' => 'Mentor profile already exists.'], 409);
@@ -672,16 +665,9 @@ public function learner_register(Request $request)
         DB::beginTransaction();
 
         try {
-            // Update user role
-            // $user_info->update(['role' => 'mentor']);
-
-            // Handle file upload via your controller
             $Gdrive = new GdriveController();
             $imageID = $Gdrive->imageUp($request);
             $credID = $Gdrive->storeCreds($request);
-            // $this->sendVerifEmail($user);
-
-            // event(new registered($user));
 
             $mentor = Mentor::create([
                 'ment_inf_id' => $user->id,
@@ -700,12 +686,12 @@ public function learner_register(Request $request)
                 'bio' => $request->bio,
                 'exp' => $request->exp,
                 'credentials' => $credID,
+                'approval_status' => 'pending'
             ]);
 
             DB::commit();
 
             return response()->json([
-                'user' => $user,
                 'mentor' => $mentor,
             ], 201);
         } catch (Exception $e) {

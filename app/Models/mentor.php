@@ -35,6 +35,7 @@ class Mentor extends Model
         'credentials',
         'rating_ave',
         'account_status',
+        'approval_status',
         'approved',
     ];
 

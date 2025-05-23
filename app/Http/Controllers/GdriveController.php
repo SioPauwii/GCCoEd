@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\learner;
 use App\Models\mentor;
+use App\Models\Schedule;
 
 
 class GdriveController extends Controller
@@ -179,6 +180,46 @@ class GdriveController extends Controller
         return response()->json([
             'message' => 'Files retrieved successfully.',
             'files' => $files,
+        ], 200);
+    }
+
+    public function getMentorsFiles()
+    {
+        $user = Auth::user();
+
+        // Get the learner's created schedules and their unique participant IDs
+        $participantIds = Schedule::where('creator_id', $user->id)
+            ->distinct()
+            ->pluck('participant_id')
+            ->toArray();
+
+        // Get mentors' user IDs from participant IDs
+        $mentorUserIds = Mentor::whereIn('mentor_no', $participantIds)
+            ->pluck('ment_inf_id')
+            ->toArray();
+
+        // Get files owned by these mentors with only specified fields
+        $files = Files::whereIn('owner_id', $mentorUserIds)
+            ->get()
+            ->map(function ($file) {
+                return [
+                    'id' => $file->id,
+                    'file_id' => $file->fileid,
+                    'file_name' => $file->file_name,
+                    "owner_id" => $file->owner_id,
+                ];
+            });
+
+        if ($files->isEmpty()) {
+            return response()->json([
+                'message' => 'No files found from scheduled mentors',
+                'files' => []
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Files retrieved successfully',
+            'files' => $files
         ], 200);
     }
 
@@ -404,5 +445,64 @@ class GdriveController extends Controller
             'status' => $response->status(),
             'error' => json_decode($response->body(), true), // Include the error details from the API
         ], $response->status());
+    }
+
+    public function getMentorCreds($mentId)
+    {
+        try {
+            // Get authenticated user's mentor record
+            $mentor = Mentor::where('ment_inf_id', $mentId)->first();
+
+            if (!$mentor) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Mentor record not found'
+                ], 404);
+            }
+
+            // Get credentials array from the mentor record
+            $credentialIds = $mentor->credentials;
+
+            if (empty($credentialIds)) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'No credentials found',
+                    'credentials' => []
+                ], 200);
+            }
+
+            $accessToken = $this->token();
+            $credentials = [];
+
+            // Fetch each credential file's details from Google Drive
+            foreach ($credentialIds as $fileId) {
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $accessToken,
+                ])->get("https://www.googleapis.com/drive/v3/files/{$fileId}?fields=id,name,webViewLink,webContentLink");
+
+                if ($response->successful()) {
+                    $fileData = json_decode($response->body(), true);
+                    $credentials[] = [
+                        'id' => $fileData['id'],
+                        'name' => $fileData['name'],
+                        'previewLink' => $fileData['webViewLink'],
+                        'downloadLink' => $fileData['webContentLink']
+                    ];
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Credentials retrieved successfully',
+                'credentials' => $credentials
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve credentials',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

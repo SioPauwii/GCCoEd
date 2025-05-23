@@ -85,6 +85,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/learner/doneSched', [ScheduleController::class, 'getSchedLear4RevU'])
     ->middleware(checkRole::class.':learner');
 
+    Route::get('/learner/mentFiles', [GdriveController::class, 'getMentorsFiles'])
+    ->middleware(checkRole::class.':learner');
+
     // mentor functions
     Route::get('/mentor/details', [MentorController::class, 'GetMentDeets'])
     ->middleware(checkRole::class.':mentor');
@@ -122,24 +125,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin', [mainController::class, 'retAll'])
     ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/mentor', [mainController::class, 'retAllMent'])
-    ->middleware(checkRole::class.':admin');
+    // Route::get('/admin/mentor', [mainController::class, 'retAllMent'])
+    // ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/learner', [mainController::class, 'retAllLear'])
-    ->middleware(checkRole::class.':admin');
+    // Route::get('/admin/learner', [mainController::class, 'retAllLear'])
+    // ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/mentor/approval', [mainController::class, 'retForApproval'])
+    Route::get('/admin/applicants', [mainController::class, 'retForApproval'])
     ->middleware(checkRole::class.':admin');
 
     // get one specific user
     Route::get('/admin/{id}', [mainController::class, 'retOne'])
     ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/mentor/{id}', [mainController::class, 'retOneMent'])
-    ->middleware(checkRole::class.':admin');
+    // Route::get('/admin/mentor/{id}', [mainController::class, 'retOneMent'])
+    // ->middleware(checkRole::class.':admin');
 
-    Route::get('/admin/learner/{id}', [mainController::class, 'retOneLear'])
-    ->middleware(checkRole::class.':admin');
+    // Route::get('/admin/learner/{id}', [mainController::class, 'retOneLear'])
+    // ->middleware(checkRole::class.':admin');
 
     Route::delete('/admin/delete/{id}', [mainController::class, 'delAcc'])
     ->middleware(checkRole::class.':admin');
@@ -149,6 +152,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::patch('/admin/mentor/reject/{id}', [mainController::class, 'rejectAcc'])
     ->middleware(checkRole::class.':admin');
+
+    Route::get('/admin/cred/{mentId}', [GdriveController::class, 'getMentorCreds'])
+    ->middleware(checkRole::class.':admin');
+
+    // Route::patch('/admin/applicants', [mainController::class, 'retAllApplicants'])
+    // ->middleware(checkRole::class.':admin');
 
     //General protected routes
     Route::post('/logout/api', [AuthController::class, 'apiLogout']);
