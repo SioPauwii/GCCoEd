@@ -1,8 +1,5 @@
 FROM php:8.1-apache
 
-# Enable Apache modules
-RUN a2enmod rewrite
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -13,43 +10,43 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Get specific Composer version
+# Enable Apache modules
+RUN a2enmod rewrite
+
+# Get Composer
 COPY --from=composer:2.5.8 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy only necessary files first
+# Copy composer files
 COPY composer.* ./
 
-# Install dependencies with more permissive settings
+# Install dependencies
 RUN composer install \
-    --ignore-platform-reqs \
-    --no-scripts \
     --no-dev \
+    --no-scripts \
     --prefer-dist \
-    --no-interaction \
-    --optimize-autoloader
+    --no-interaction
 
-# Copy the rest of the application
+# Copy application
 COPY . .
 
-# Apache configuration
+# Copy Apache config
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+
+# Enable site
 RUN a2ensite 000-default.conf
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && chmod -R 755 storage bootstrap/cache
 
 EXPOSE 80
 
-# Start Apache
-CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+# Use default Apache entrypoint and start Apache
+ENTRYPOINT ["docker-php-entrypoint"]
+CMD ["apache2-foreground"]
