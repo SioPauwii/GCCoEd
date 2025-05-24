@@ -119,6 +119,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/mentor/getFeedback', [FeedbackController::class, 'getFeedback'])
     ->middleware(checkRole::class.':mentor');
 
+    Route::post('/mentor/send-offer', [ScheduleController::class, 'sendOffer'])
+    ->middleware(checkRole::class.':mentor');
+
+
     // general admin functions
     
     // get all users
@@ -216,3 +220,7 @@ Route::get('/verify-email/{id}/{token}', function ($id, $token) {
 
 // Route::get('/message/{receiver_id}', [MessageController::class, 'conversation'])
 // ->middleware('auth:sanctum'); // Ensure the user is authenticated
+
+Route::get('/schedule/accept/{token}', [ScheduleController::class, 'acceptSchedule'])
+    ->name('api.schedule.accept')
+    ->middleware('signed');

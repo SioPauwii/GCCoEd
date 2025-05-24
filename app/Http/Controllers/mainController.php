@@ -28,7 +28,7 @@ class mainController extends Controller
                 });
             })
             ->select('id', 'name', 'email', 'role', 'secondary_role')
-            ->with(['mentor:ment_inf_id,year,course,gender,image,phoneNum,address', 'learner:learn_inf_id,year,course,gender,image,phoneNum,address'])
+            ->with(['mentor:ment_inf_id,year,course,gender,image,phoneNum,address,learn_modality,teach_sty,availability,prefSessDur,bio,exp,subjects,proficiency', 'learner:learn_inf_id,year,course,gender,image,phoneNum,address,learn_modality,learn_sty,availability,prefSessDur,bio,goals,subjects'])
             ->get()
             ->map(function ($user) {
                 $info = null;
@@ -50,6 +50,16 @@ class mainController extends Controller
                     'address' => $info ? $info->address : null,
                     'image' => $info ? $info->image : null,
                     'gender' => $info ? $info->gender : null,
+                    'learn_modality' => $info ? $info->learn_modality : null,
+                    'teach_sty' => $info ? $info->teach_sty : null,
+                    'learn_sty' => $info ? $info->learn_sty : null,
+                    'availability' => $info ? $info->availability : null,
+                    'prefSessDur' => $info ? $info->prefSessDur : null,
+                    'bio' => $info ? $info->bio : null,
+                    'exp' => $info ? $info->exp : null,
+                    'goals' => $info ? $info->goals : null,           
+                    'subjects' => $info ? $info->subjects : null,
+                    'proficiency' => $info ? $info->proficiency : null,
                 ];
             });
         
@@ -67,7 +77,7 @@ class mainController extends Controller
                       ->orWhere('secondary_role', 'mentor');
             })
             ->whereHas('mentor', function($query) {
-                $query->where('approved', 1);
+                $query->where('approval_status', 'approved');
             })
             ->count();
         
@@ -77,11 +87,11 @@ class mainController extends Controller
                       ->orWhere('secondary_role', 'mentor');
             })
             ->whereHas('mentor', function($query) {
-                $query->where('approved', 0);
+                $query->where('approval_status', 'pending');
             })
             ->count();
 
-        // Calculate total users
+        // Calculate total users (excluding rejected mentors)
         $totalUsers = $totalLearners + $totalApprovedMentors + $totalPendingMentors;
 
         return response()->json([
@@ -102,17 +112,25 @@ class mainController extends Controller
             return response()->json(['message' => 'User not found'], 404);
         }
 
-        if ($user->role == 'mentor') {
+        $response = ['user' => $user];
+
+        // Check if user is a learner with mentor secondary role
+        if ($user->role == 'learner' && $user->secondary_role == 'mentor') {
             $info = Mentor::where('ment_inf_id', $user->id)->first();
-            return response()->json(['user' => $user, 'info' => $info]);
+            $response['info'] = $info;
         }
-
-        if ($user->role == 'learner') {
+        // If user is just a mentor
+        elseif ($user->role == 'mentor') {
+            $info = Mentor::where('ment_inf_id', $user->id)->first();
+            $response['info'] = $info;
+        }
+        // If user is just a learner
+        elseif ($user->role == 'learner') {
             $info = Learner::where('learn_inf_id', $user->id)->first();
-            return response()->json(['user' => $user, 'info' => $info]);
+            $response['info'] = $info;
         }
 
-        return response()->json($user);
+        return response()->json($response);
     }
 
     // public function retAllMent(){

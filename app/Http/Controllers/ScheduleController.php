@@ -14,6 +14,7 @@ use App\Mail\RemindSched;
 use App\Mail\cancelSched;
 use App\Mail\reSched;
 use Illuminate\Support\Facades\Mail;
+use App\Mail\TutoringSessionOffer;
 
 class ScheduleController extends Controller
 {
@@ -325,5 +326,115 @@ class ScheduleController extends Controller
         return response()->json([
             'schedules_done' => $schedulesDone,
         ]);
+    }
+
+    public function acceptSchedule(Request $request, $token)
+    {
+        // Validate the signature
+        if (!$request->hasValidSignature()) {
+            return response()->json(['message' => 'Invalid or expired link'], 401);
+        }
+
+        try {
+            // Validate request parameters
+            $validatedData = $request->validate([
+                'date' => 'required|date',
+                'time' => 'required|date_format:H:i',
+                'modality' => 'required|string|in:online,in-person',
+                'subject' => 'required|string|max:255',
+                'location' => 'nullable|string',
+                'mentor_id' => 'required|integer|exists:mentor_infos,mentor_no',
+                'learner_id' => 'required|integer|exists:learner_info,learn_inf_id',
+            ]);
+
+            // Set location based on modality
+            $location = $validatedData['modality'] === 'online' 
+                ? 'home' 
+                : $validatedData['location'];
+
+            // Create the schedule
+            $schedule = Schedule::create([
+                'creator_id' => $validatedData['learner_id'],
+                'participant_id' => $validatedData['mentor_id'],
+                'subject' => $validatedData['subject'],
+                'date' => Carbon::parse($validatedData['date'])->format('Y-m-d'),
+                'time' => $validatedData['time'],
+                'location' => $location,
+                'status' => 'confirmed'
+            ]);
+
+            return response()->json([
+                'message' => 'Schedule accepted and created successfully',
+                'schedule' => $schedule,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error creating schedule',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function sendOffer(Request $request)
+    {
+        try {
+            // Validate the request
+            $validatedData = $request->validate([
+                'learner_id' => 'required|exists:learner_info,learn_inf_id',
+                'subject' => 'required|string|max:255',
+                'date' => 'required|date|after:today',
+                'time' => 'required|date_format:H:i',
+                'modality' => 'required|in:online,in-person',
+                'location' => 'required_if:modality,in-person'
+            ]);
+
+            // Get authenticated user (mentor)
+            $user = Auth::user();
+            $mentor = Mentor::where('ment_inf_id', $user->id)->first();
+
+            if (!$mentor) {
+                return response()->json(['message' => 'Mentor not found'], 404);
+            }
+
+            // Get learner information
+            $learner = Learner::with('user')->where('learn_inf_id', $validatedData['learner_id'])->first();
+
+            if (!$learner || !$learner->user) {
+                return response()->json(['message' => 'Learner not found'], 404);
+            }
+
+            // Generate a unique token for the offer
+            $token = hash('sha256', time() . $learner->learn_inf_id . $mentor->mentor_no);
+
+            // Send the email offer
+            Mail::to($learner->user->email)->send(new TutoringSessionOffer([
+                'token' => $token,
+                'learnerName' => $learner->user->name,
+                'mentorName' => $user->name,
+                'subject' => $validatedData['subject'],
+                'date' => $validatedData['date'],
+                'time' => $validatedData['time'],
+                'modality' => $validatedData['modality'],
+                'location' => $validatedData['modality'] === 'online' ? 'home' : $validatedData['location'],
+                'mentorId' => $mentor->mentor_no,
+                'learnerId' => $learner->learn_inf_id
+            ]));
+
+            return response()->json([
+                'message' => 'Tutoring session offer sent successfully',
+                'details' => [
+                    'learner' => $learner->user->name,
+                    'date' => $validatedData['date'],
+                    'time' => $validatedData['time'],
+                    'modality' => $validatedData['modality']
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error sending tutoring offer',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
