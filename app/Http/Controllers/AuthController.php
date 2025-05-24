@@ -536,6 +536,15 @@ public function learner_register(Request $request)
             ], 403);
         }
 
+        if ($user->role === 'learner'){
+            $mentor_info = Mentor::where('ment_inf_id', $user->id)->first();
+            if ($user->secondary_role === 'mentor' && $mentor_info->approval_status !== 'approved') {
+                return response()->json([
+                    'error' => 'You can only switch to mentor role after approval.'
+                ], 403);
+            }
+        }
+
         // Swap the roles
         $temp = $user_info->role;
         $user_info->role = $user_info->secondary_role;

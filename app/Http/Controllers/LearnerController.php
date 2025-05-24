@@ -13,10 +13,19 @@ use App\Models\Learner;
 class LearnerController extends Controller
 {
     public function retAllMent(){
-        $users = User::where('role', 'mentor')->orWhere('secondary_role', 'mentor')->get();
+        $users = User::where(function($query) {
+                $query->where('role', 'mentor')
+                      ->orWhere('secondary_role', 'mentor');
+            })
+            ->whereHas('mentor', function($query) {
+                $query->where('approval_status', 'approved');
+            })
+            ->get();
         
         $mentors = $users->map(function ($user) {
-            $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
+            $mentorInfo = Mentor::where('ment_inf_id', $user->id)
+                               ->where('approval_status', 'approved')
+                               ->first();
             return [
                 'user' => $user,
                 'mentor_infos' => $mentorInfo
