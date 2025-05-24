@@ -1,4 +1,7 @@
-FROM php:8.1-fpm
+FROM php:8.1-apache
+
+# Enable Apache modules
+RUN a2enmod rewrite
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -8,9 +11,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     zip \
-    unzip \
-    nodejs \
-    npm
+    unzip
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -22,7 +23,7 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 COPY --from=composer:2.5.8 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 # Copy only necessary files first
 COPY composer.* ./
@@ -39,12 +40,15 @@ RUN composer install \
 # Copy the rest of the application
 COPY . .
 
+# Apache configuration
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+
 # Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
-EXPOSE 8000
+EXPOSE 80
 
-# Change CMD to use PHP's built-in server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Use Apache as the entrypoint
+CMD ["apache2-foreground"]
