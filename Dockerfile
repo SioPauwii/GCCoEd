@@ -22,17 +22,21 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy application files
+# Copy composer files first
+COPY composer.json composer.lock ./
+
+# Install dependencies with specific version constraints
+RUN composer install --no-scripts --no-autoloader --prefer-dist
+
+# Copy the rest of the application
 COPY . .
 
-# Install dependencies
-RUN composer install
+# Generate autoloader and run scripts
+RUN composer dump-autoload --optimize
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www
 
-# Expose port 9000
 EXPOSE 9000
 
-# Start PHP-FPM
 CMD ["php-fpm"]
