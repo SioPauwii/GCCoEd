@@ -26,22 +26,18 @@ WORKDIR /var/www
 
 # Copy only necessary files first
 COPY composer.* ./
-COPY package*.json ./
 
 # Install dependencies with more permissive settings
-RUN composer config --global process-timeout 2000 && \
-    composer install \
+RUN composer install \
     --ignore-platform-reqs \
     --no-scripts \
     --no-dev \
     --prefer-dist \
-    --no-interaction
+    --no-interaction \
+    --optimize-autoloader
 
 # Copy the rest of the application
 COPY . .
-
-# Generate autoload files
-RUN composer dump-autoload --optimize --no-dev
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
