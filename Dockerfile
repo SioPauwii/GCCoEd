@@ -16,22 +16,27 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Get Composer version 2.5.8 (more stable for this setup)
+COPY --from=composer:2.5.8 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy composer files first
-COPY composer.json composer.lock ./
+# Copy only composer files first
+COPY composer.* ./
 
-# Install dependencies with specific version constraints
-RUN composer install --no-scripts --no-autoloader --prefer-dist
+# Install dependencies
+RUN composer install \
+    --ignore-platform-reqs \
+    --no-interaction \
+    --no-plugins \
+    --no-scripts \
+    --prefer-dist
 
 # Copy the rest of the application
 COPY . .
 
-# Generate autoloader and run scripts
+# Generate optimized autoload files
 RUN composer dump-autoload --optimize
 
 # Set permissions
