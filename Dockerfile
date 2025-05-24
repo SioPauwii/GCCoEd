@@ -41,7 +41,8 @@ RUN composer install \
 COPY . .
 
 # Apache configuration
-RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+RUN a2ensite 000-default.conf
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
@@ -50,5 +51,5 @@ RUN chown -R www-data:www-data /var/www/html \
 
 EXPOSE 80
 
-# Use Apache as the entrypoint
-CMD ["apache2-foreground"]
+# Start Apache
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
