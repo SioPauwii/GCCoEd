@@ -87,19 +87,36 @@ class FeedbackController extends Controller
     public function getFeedback() {
         $user = Auth::user();
         $mentor = Mentor::where("ment_inf_id", $user->id)->with('user')->first();
-    
+
         // Fetch feedbacks with reviewer's (learner's) information
         $feedbacks = Feedback::where("reviewee_id", $mentor->mentor_no)
             ->with([
-                "reviewer.user:id,name",
+                'reviewer.user', // Load all user fields
                 "reviewer" => function ($query) {
-                    $query->select("learn_inf_id", "course", "year", "image"); // Include desired fields
+                    $query->select("learn_inf_id", "course", "year", "image");
                 }
             ])
+            ->select('id', 'reviewer_id', 'feedback', 'rating', 'created_at') // Specify which feedback fields you want
             ->get();
-    
+
+        // Transform the data to include reviewer name directly
+        $formattedFeedbacks = $feedbacks->map(function ($feedback) {
+            return [
+                'id' => $feedback->id,
+                'feedback' => $feedback->feedback,
+                'rating' => $feedback->rating,
+                'created_at' => $feedback->created_at,
+                'reviewer' => [
+                    'name' => $feedback->reviewer->user->name,
+                    'course' => $feedback->reviewer->course,
+                    'year' => $feedback->reviewer->year,
+                    'image' => $feedback->reviewer->image,
+                ]
+            ];
+        });
+
         return response()->json([
-            "feedbacks" => $feedbacks,
+            "feedbacks" => $formattedFeedbacks,
         ], 200);
     }
 }
