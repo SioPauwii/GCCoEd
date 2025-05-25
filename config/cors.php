@@ -31,4 +31,5 @@ return [
 
     'supports_credentials' => true,
 
+    'same_site' => 'none',
 ];
