@@ -19,9 +19,8 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => ['*'],
-    // 'allowed_origins' => ['http://localhost:5173', 'https://gc-co-ed.vercel.app'],
-
+    'allowed_origins' => ['http://localhost:5173', 'https://gc-co-ed.vercel.app'],
+    
 
     'allowed_origins_patterns' => [],
 
@@ -35,7 +34,7 @@ return [
         'X-XSRF-TOKEN'
     ],
 
-    'exposed_headers' => ['Set-Cookie'],
+    'exposed_headers' => [],
 
     'max_age' => 0,
 
