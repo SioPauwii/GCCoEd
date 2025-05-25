@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'https://localhost:5173', 'https://gccoed-api.onrender.com'],
+    'allowed_origins' => ['http://localhost:5173', 'https://localhost:5173', 'https://gccoed-api.onrender.com', 'https://gc-co-ed.vercel.app'],
 
     'allowed_origins_patterns' => [],
 
