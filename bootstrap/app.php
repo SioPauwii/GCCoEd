@@ -20,14 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // ]);
         $middleware->statefulApi();
 
-        $middleware->use([
-            HandleCorsAndCookies::class
-        ]);
+        // $middleware->use([
+        //     HandleCorsAndCookies::class
+        // ]);
 
-        $middleware->api([
-            HandleCorsAndCookies::class,
-        ]);
-        
+        // $middleware->api([
+        //     HandleCorsAndCookies::class,
+        // ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
