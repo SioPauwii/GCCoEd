@@ -17,15 +17,23 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'password/reset', 'password/email'],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => ['http://localhost:5173', 'https://gc-co-ed.vercel.app'],
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        'X-CSRF-TOKEN',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Origin',
+        'X-XSRF-TOKEN'
+    ],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['Set-Cookie'],
 
     'max_age' => 0,
 
