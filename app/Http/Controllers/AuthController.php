@@ -253,13 +253,34 @@ public function learner_register(Request $request)
         }
     
         RateLimiter::clear($throttleKey);
+        
+        // Get the authenticated user
+        $user = Auth::guard('web')->user();
+        
+        // Check if user is a mentor and verify approval status
+        if ($user->role === 'mentor') {
+            $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
+            
+            if (!$mentorInfo || $mentorInfo->approval_status !== 'approved') {
+                // Logout the user since they're not approved
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                
+                return response()->json([
+                    'error' => 'Mentor account not approved yet',
+                    'status' => $mentorInfo ? $mentorInfo->approval_status : 'not_found',
+                    'message' => 'Your mentor application is still under review. You will receive an email once approved.'
+                ], 403);
+            }
+        }
     
         $request->session()->regenerate();
     
         return response()->json([
             'message' => 'Login successful (cookie-based)',
-            'user' => Auth::guard('web')->user(),
-            'user_role' => Auth::guard('web')->user()->role
+            'user' => $user,
+            'user_role' => $user->role
         ]);
     }
 
@@ -279,6 +300,19 @@ public function learner_register(Request $request)
             throw ValidationException::withMessages([
                 'login' => ['The provided credentials are incorrect.'],
             ]);
+        }
+
+        // Check if user is a mentor and verify approval status
+        if ($user->role === 'mentor') {
+            $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
+            
+            if (!$mentorInfo || $mentorInfo->approval_status !== 'approved') {
+                return response()->json([
+                    'error' => 'Mentor account not approved yet',
+                    'status' => $mentorInfo ? $mentorInfo->approval_status : 'not_found',
+                    'message' => 'Your mentor application is still under review. You will receive an email once approved.'
+                ], 403);
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -707,5 +741,45 @@ public function learner_register(Request $request)
             DB::rollBack();
             return response()->json(['error' => 'Registration failed', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function userRole(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json([
+            'role' => $user->role,
+            'secondary_role' => $user->secondary_role
+        ]);
+    }
+
+    public function authCheck(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthenticated.',
+                'authenticated' => false
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User is authenticated',
+            'authenticated' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'secondary_role' => $user->secondary_role
+            ]
+        ]);
     }
 }
