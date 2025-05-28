@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
@@ -15,12 +14,21 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'password/reset', 'password/email'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'login',
+        'logout',
+        'broadcasting/auth', // Important for private channels
+        'password/reset',
+        'password/email',
+        'register'
+    ],
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => ['http://localhost:5173', 'https://gc-co-ed.vercel.app'],
-    
+
 
     'allowed_origins_patterns' => [],
 
@@ -31,7 +39,10 @@ return [
         'Accept',
         'Authorization',
         'Origin',
-        'X-XSRF-TOKEN'
+        'X-XSRF-TOKEN',
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Methods',
+        'Access-Control-Allow-Headers',
     ],
 
     'exposed_headers' => [],
