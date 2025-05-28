@@ -742,4 +742,44 @@ public function learner_register(Request $request)
             return response()->json(['error' => 'Registration failed', 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function userRole(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json([
+            'role' => $user->role,
+            'secondary_role' => $user->secondary_role
+        ]);
+    }
+
+    public function authCheck(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthenticated.',
+                'authenticated' => false
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User is authenticated',
+            'authenticated' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'secondary_role' => $user->secondary_role
+            ]
+        ]);
+    }
 }

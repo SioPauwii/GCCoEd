@@ -23,6 +23,10 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
+Route::get('/user/role', [AuthController::class, 'getUserRole']);
+
+Route::get('/auth/check', [AuthController::class, 'authCheck']);
+
 Route::post('/learner/register', [AuthController::class, 'learner_register']);
 
 Route::post('/mentor/register', [AuthController::class, 'mentor_register']);
