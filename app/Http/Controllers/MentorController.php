@@ -18,6 +18,12 @@ class MentorController extends Controller
         
         $learners = $users->map(function ($user) {
             $learnerInfo = Learner::where('learn_inf_id', $user->id)->first();
+            
+            // Skip users without learner info
+            if (!$learnerInfo) {
+                return null;
+            }
+
             return [
                 'image_id' => $learnerInfo->image,
                 'id' => $learnerInfo->learner_no,
@@ -25,7 +31,7 @@ class MentorController extends Controller
                 'yearLevel' => $learnerInfo->year,
                 'course' => $learnerInfo->course,                
             ];
-        });
+        })->filter(); // Remove null values from the collection
 
         return response()->json($learners);
     }
