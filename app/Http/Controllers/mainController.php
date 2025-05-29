@@ -311,4 +311,29 @@ class mainController extends Controller
             ], 500);
         }
     }
+
+    // Function to return the admin's name
+    public function getAdminName()
+    {
+        try {
+            // Find user with admin role
+            $admin = User::where('role', 'admin')->first();
+            
+            if (!$admin) {
+                return response()->json(['message' => 'Admin not found'], 404);
+            }
+            
+            return response()->json([
+                'status' => 'success',
+                'name' => $admin->name,
+                'id' => $admin->id
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve admin information',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

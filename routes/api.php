@@ -130,6 +130,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // general admin functions
     
     // get all users
+
+    Route::get('/admin/profile', [mainController::class, 'getAdminName'])
+    ->middleware(checkRole::class.':admin');
+
     Route::get('/admin', [mainController::class, 'retAll'])
     ->middleware(checkRole::class.':admin');
 
