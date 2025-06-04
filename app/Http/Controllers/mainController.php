@@ -262,6 +262,7 @@ class mainController extends Controller
     public function approveAcc($id){
         try {
             $mentor = Mentor::with('user')->where('ment_inf_id', $id)->first();
+            $user = User::where('id', $id)->first();
             
             if (!$mentor) {
                 return response()->json(['message' => 'Mentor not found'], 404);
@@ -272,9 +273,9 @@ class mainController extends Controller
             $mentor->save();
 
             // Get email from associated user
-            if ($mentor->user) {
-                Mail::to($mentor->user->email)->send(new AccountApprovedMail($mentor->mentor_no));
-            }
+            // if ($mentor->user) {
+                Mail::to($user->email)->send(new AccountApprovedMail($user->id));
+            // }
 
             return response()->json(['message' => 'Mentor approved successfully']);
         } catch (\Exception $e) {
@@ -289,15 +290,16 @@ class mainController extends Controller
     public function rejectAcc($id){
         try {
             $mentor = Mentor::with('user')->where('ment_inf_id', $id)->first();
-            
+            $user = User::where('id', $id)->first();
+
             if (!$mentor) {
                 return response()->json(['message' => 'Mentor not found'], 404);
             }
 
             // Send email before updating status
-            if ($mentor->user) {
-                Mail::to($mentor->user->email)->send(new AccountRejectedMail($mentor->mentor_no));
-            }
+            // if ($mentor->user) {
+                Mail::to($user->email)->send(new AccountRejectedMail($user->id));
+            // }
 
             $mentor->approved = 0;
             $mentor->approval_status = 'rejected';

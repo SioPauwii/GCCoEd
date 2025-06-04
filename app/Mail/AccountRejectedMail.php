@@ -30,7 +30,7 @@ class AccountRejectedMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $mentorEmail = Mentor::where('mentor_no', $this->mentorId)->first()->email;
+        $mentorEmail = User::where('id', $this->mentorId)->first()->email;
         return new Envelope(
             subject: 'Account Rejected',
             from: 'gccoed@gmail.com',

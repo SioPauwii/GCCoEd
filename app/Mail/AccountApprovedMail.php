@@ -30,7 +30,7 @@ class AccountApprovedMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $mentorEmail = Mentor::where('mentor_no', $this->mentorId)->first()->email;
+        $mentorEmail = User::where('id', $this->mentorId)->first()->email;
         return new Envelope(
             subject: 'Account Approved',
             from: 'gccoed@gmail.com',

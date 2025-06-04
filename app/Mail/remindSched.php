@@ -65,8 +65,8 @@ class remindSched extends Mailable
                 'date' => $sched->date,
                 'time' => $sched->time,
                 'location' => $sched->location,
-                'mentorName' => Mentor::where('mentor_no', $sched->participant_id)->first()->name,
-                'learnerName' => Learner::where('learn_inf_id', $sched->creator_id)->first()->name,
+                'mentorName' => User::where('id', $sched->participant_id)->first()->name,
+                'learnerName' => User::where('id', $sched->creator_id)->first()->name,
             ],
             view: 'emails.SchedReminder',
         );
