@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\learner;
 use App\Models\mentor;
 use App\Models\Schedule;
-
+use Cloudinary\Cloudinary;
+use Cloudinary\Transformation\Resize;
 
 class GdriveController extends Controller
 {
@@ -259,45 +260,36 @@ class GdriveController extends Controller
     }
 
     public function imageUp(Request $request) {
-        $folder_id = '16uhYG_VG_QaIp2pDz7YAqmpzCYnnQKYC';
-
         $request->validate([
             'image' => 'file|required|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $accessToken = $this->token();
-        $name = $request->image->getClientOriginalName();
-        $path = $request->image->getRealPath();
+        try {
+            // Initialize Cloudinary
+            $cloudinary = new Cloudinary([
+                'cloud' => [
+                    'cloud_name' => config('services.cloudinary.cloud_name'),
+                    'api_key' => config('services.cloudinary.api_key'),
+                    'api_secret' => config('services.cloudinary.api_secret'),
+                ]
+            ]);
 
-        $metadata = [
-            'name'=>$name,
-            'parents'=>[$folder_id]
-        ];
+            // Upload image to Cloudinary
+            $uploadResult = $cloudinary->uploadApi()->upload($request->image->getRealPath(), [
+                'folder' => 'profile_images',
+                'resource_type' => 'image',
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
+            ]);
 
-        $response = Http::withToken($accessToken)
-        ->attach('metadata',json_encode($metadata),'metadata.json')
-        ->attach('data',file_get_contents($path),$name)
-        ->post('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
+            // Return the public_id which we'll use to reference the image
+            return $uploadResult['public_id'];
 
-        if ($response->successful()) {
-            $file_id = json_decode($response->body())->id;
-
-            // // Store the file ID in the respective table based on the role
-            // if ($role === 'mentor') {
-            //     $mentor = mentor::where('ment_inf_id', Auth::id())->first();
-            //     if ($mentor) {
-            //         $mentor->image = $file_id;
-            //         $mentor->save();
-            //     }
-            // } elseif ($role === 'learner') {
-            //     $learner = learner::where('learn_inf_id', Auth::id())->first();
-            //     if ($learner) {
-            //         $learner->image = $file_id;
-            //         $learner->save();
-            //     }
-            // }
-
-            return $file_id;
+        } catch (\Exception $e) {
+            Log::error('Failed to upload image to Cloudinary', [
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'Failed to upload image'], 500);
         }
     }
 
@@ -332,18 +324,41 @@ class GdriveController extends Controller
         return response()->json(['message' => 'Failed to retrieve image URL'], 500);
     }
 
-    public function streamImg($file_id) {
-        $accessToken = $this->token();
-        
-        $response = Http::withToken($accessToken)
-        ->get("https://www.googleapis.com/drive/v3/files/{$file_id}",[
-            'alt' => 'media'
-        ]);
+    // public function streamImg($file_id) {
+    //     try {
+    //         // Initialize Cloudinary
+    //         $cloudinary = new Cloudinary([
+    //             'cloud' => [
+    //                 'cloud_name' => config('services.cloudinary.cloud_name'),
+    //                 'api_key' => config('services.cloudinary.api_key'),
+    //                 'api_secret' => config('services.cloudinary.api_secret'),
+    //             ]
+    //         ]);
 
-        return response($response->body(), 200, [ 
-            'Content-Type' => $response->header('Content-Type'),
-        ]);
-    }
+    //         // Generate the image URL from Cloudinary
+    //         $imageUrl = $cloudinary->image($file_id)
+    //             ->resize(Resize::scale()->width(800)) // Optional: resize for optimization
+    //             ->toUrl();
+
+    //         // Fetch the image from Cloudinary
+    //         $response = Http::get($imageUrl);
+
+    //         if (!$response->successful()) {
+    //             return response()->json(['message' => 'Failed to retrieve image'], 404);
+    //         }
+
+    //         return response($response->body(), 200)
+    //             ->header('Content-Type', 'image/jpeg') // Default to JPEG, adjust as needed
+    //             ->header('Cache-Control', 'public, max-age=86400'); // Cache for a day
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Exception in streamImg', [
+    //             'file_id' => $file_id,
+    //             'error' => $e->getMessage()
+    //         ]);
+    //         return response()->json(['message' => 'Error streaming image'], 500);
+    //     }
+    // }
 
     public function storeCreds(Request $request) {
         $parent_id = '1TnFc_7Xo4f09eXNjpKgWbqGwNmSJuM_R';
@@ -503,6 +518,36 @@ class GdriveController extends Controller
                 'message' => 'Failed to retrieve credentials',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function getImageUrl($file_id) {
+        try {
+            // Initialize Cloudinary
+            $cloudinary = new Cloudinary([
+                'cloud' => [
+                    'cloud_name' => config('services.cloudinary.cloud_name'),
+                    'api_key' => config('services.cloudinary.api_key'),
+                    'api_secret' => config('services.cloudinary.api_secret'),
+                ]
+            ]);
+
+            // Generate the image URL from Cloudinary
+            $imageUrl = $cloudinary->image($file_id)
+                ->resize(Resize::scale()->width(800)) // Optional: resize for optimization
+                ->toUrl();
+
+            return response()->json([
+                'image_url' => $imageUrl,
+                'public_id' => $file_id
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Exception in getImageUrl', [
+                'file_id' => $file_id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'Error generating image URL'], 500);
         }
     }
 }

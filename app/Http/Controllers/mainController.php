@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AccountApprovedMail;
 use App\Mail\AccountRejectedMail;
+use App\Traits\CloudinaryHelper;
 
 class mainController extends Controller
 {
+    use CloudinaryHelper;
+
     public function retAll()
     {
         // Get users with roles (excluding admins)
@@ -32,10 +35,17 @@ class mainController extends Controller
             ->get()
             ->map(function ($user) {
                 $info = null;
+                $imageUrl = null;
+                
                 if ($user->role === 'mentor') {
                     $info = $user->mentor;
                 } elseif ($user->role === 'learner') {
                     $info = $user->learner;
+                }
+                
+                // Generate Cloudinary URL for the image
+                if ($info && $info->image) {
+                    $imageUrl = $this->generateCloudinaryUrl($info->image, 400);
                 }
                 
                 return [
@@ -49,6 +59,7 @@ class mainController extends Controller
                     'phoneNum' => $info ? $info->phoneNum : null,
                     'address' => $info ? $info->address : null,
                     'image' => $info ? $info->image : null,
+                    'image_url' => $imageUrl,
                     'gender' => $info ? $info->gender : null,
                     'learn_modality' => $info ? $info->learn_modality : null,
                     'teach_sty' => $info ? $info->teach_sty : null,
@@ -94,6 +105,72 @@ class mainController extends Controller
         // Calculate total users (excluding rejected mentors)
         $totalUsers = $totalLearners + $totalApprovedMentors + $totalPendingMentors;
 
+        // Get course breakdown for all users (learners and approved mentors)
+        $courseBreakdown = collect();
+        
+        // Get courses from learners
+        $learnerCourses = User::where(function($query) {
+                $query->where('role', 'learner')
+                      ->orWhere('secondary_role', 'learner');
+            })
+            ->whereHas('learner')
+            ->with('learner:learn_inf_id,course')
+            ->get()
+            ->pluck('learner.course')
+            ->filter();
+
+        // Get courses from approved mentors
+        $mentorCourses = User::where(function($query) {
+                $query->where('role', 'mentor')
+                      ->orWhere('secondary_role', 'mentor');
+            })
+            ->whereHas('mentor', function($query) {
+                $query->where('approval_status', 'approved');
+            })
+            ->with('mentor:ment_inf_id,course')
+            ->get()
+            ->pluck('mentor.course')
+            ->filter();
+
+        // Combine and count courses
+        $allCourses = $learnerCourses->concat($mentorCourses);
+        $courseBreakdown = $allCourses->countBy()->sortByDesc(function($count) {
+            return $count;
+        });
+
+        // Get year breakdown for all users (learners and approved mentors)
+        $yearBreakdown = collect();
+        
+        // Get years from learners
+        $learnerYears = User::where(function($query) {
+                $query->where('role', 'learner')
+                      ->orWhere('secondary_role', 'learner');
+            })
+            ->whereHas('learner')
+            ->with('learner:learn_inf_id,year')
+            ->get()
+            ->pluck('learner.year')
+            ->filter();
+
+        // Get years from approved mentors
+        $mentorYears = User::where(function($query) {
+                $query->where('role', 'mentor')
+                      ->orWhere('secondary_role', 'mentor');
+            })
+            ->whereHas('mentor', function($query) {
+                $query->where('approval_status', 'approved');
+            })
+            ->with('mentor:ment_inf_id,year')
+            ->get()
+            ->pluck('mentor.year')
+            ->filter();
+
+        // Combine and count years
+        $allYears = $learnerYears->concat($mentorYears);
+        $yearBreakdown = $allYears->countBy()->sortBy(function($count, $year) {
+            return $year;
+        });
+
         return response()->json([
             'users' => $users,
             'counts' => [
@@ -101,6 +178,16 @@ class mainController extends Controller
                 'learners' => $totalLearners,
                 'approved_mentors' => $totalApprovedMentors,
                 'pending_mentors' => $totalPendingMentors
+            ],
+            'course_breakdown' => [
+                'data' => $courseBreakdown->toArray(),
+                'total_courses' => $courseBreakdown->count(),
+                'total_users_with_courses' => $courseBreakdown->sum()
+            ],
+            'year_breakdown' => [
+                'data' => $yearBreakdown->toArray(),
+                'total_years' => $yearBreakdown->count(),
+                'total_users_with_years' => $yearBreakdown->sum()
             ]
         ]);
     }
@@ -113,22 +200,28 @@ class mainController extends Controller
         }
 
         $response = ['user' => $user];
+        $imageUrl = null;
 
         // Check if user is a learner with mentor secondary role
         if ($user->role == 'learner' && $user->secondary_role == 'mentor') {
             $info = Mentor::where('ment_inf_id', $user->id)->first();
             $response['info'] = $info;
+            $imageUrl = $this->generateCloudinaryUrl($info->image ?? null, 400);
         }
         // If user is just a mentor
         elseif ($user->role == 'mentor') {
             $info = Mentor::where('ment_inf_id', $user->id)->first();
             $response['info'] = $info;
+            $imageUrl = $this->generateCloudinaryUrl($info->image ?? null, 400);
         }
         // If user is just a learner
         elseif ($user->role == 'learner') {
             $info = Learner::where('learn_inf_id', $user->id)->first();
             $response['info'] = $info;
+            $imageUrl = $this->generateCloudinaryUrl($info->image ?? null, 400);
         }
+
+        $response['image_url'] = $imageUrl;
 
         return response()->json($response);
     }

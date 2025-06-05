@@ -9,10 +9,12 @@ use App\Models\User;
 use App\Models\learner;
 use App\Models\mentor;
 use App\Http\Controllers\GdriveController;
-
+use App\Traits\CloudinaryHelper;
 
 class MentorController extends Controller
 {
+    use CloudinaryHelper;
+
     public function retAllLear(){
         $users = User::where('role', 'learner')->orWhere('secondary_role', 'learner')->get();
         
@@ -24,12 +26,16 @@ class MentorController extends Controller
                 return null;
             }
 
+            // Generate Cloudinary URL for the image
+            $imageUrl = $this->generateCloudinaryUrl($learnerInfo->image ?? null, 400);
+
             return [
                 'image_id' => $learnerInfo->image,
                 'id' => $learnerInfo->learner_no,
                 'userName' => $user->name,
                 'yearLevel' => $learnerInfo->year,
-                'course' => $learnerInfo->course,                
+                'course' => $learnerInfo->course,
+                'image_url' => $imageUrl
             ];
         })->filter(); // Remove null values from the collection
 
@@ -45,8 +51,14 @@ class MentorController extends Controller
 
         $user = User::where('id', $user_info->learn_inf_id)->first();
 
+        // Generate Cloudinary URL for the image
+        $imageUrl = $this->generateCloudinaryUrl($user_info->image ?? null, 400);
 
-        return response()->json(['user' => $user, 'user_info' => $user_info]);
+        return response()->json([
+            'user' => $user, 
+            'user_info' => $user_info,
+            'image_url' => $imageUrl
+        ]);
     }
 
     public function editInfo(Request $request)
@@ -103,8 +115,13 @@ class MentorController extends Controller
         $user = Auth::user();
         $ment = Mentor::where('ment_inf_id', $user->id)->first();
 
-        // $ment->image = 'https://drive.google.com/uc?export=view&id='.$ment->image;
+        // Generate Cloudinary URL for the image
+        $imageUrl = $this->generateCloudinaryUrl($ment->image ?? null, 400);
 
-        return response()->json(['user' => $user, 'ment' => $ment]);
+        return response()->json([
+            'user' => $user, 
+            'ment' => $ment,
+            'image_url' => $imageUrl
+        ]);
     }
 }

@@ -168,6 +168,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/cred/{mentId}', [GdriveController::class, 'getMentorCreds'])
     ->middleware(checkRole::class.':admin');
 
+    Route::get('/admin/getData', [mainController::class, 'getDashboardData'])
+    ->middleware(checkRole::class.':admin');
+
     // Route::patch('/admin/applicants', [mainController::class, 'retAllApplicants'])
     // ->middleware(checkRole::class.':admin');
 

@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -40,5 +39,11 @@ return [
         'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
         'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
-    ]
+    ],
+
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+        'api_key' => env('CLOUDINARY_API_KEY'),
+        'api_secret' => env('CLOUDINARY_API_SECRET'),
+    ],
 ];

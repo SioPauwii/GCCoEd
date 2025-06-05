@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Mentor;
 use App\Models\Learner;
-
+use App\Traits\CloudinaryHelper;
 
 class LearnerController extends Controller
 {
+    use CloudinaryHelper;
+
     public function retAllMent(){
         $users = User::where(function($query) {
                 $query->where('role', 'mentor')
@@ -26,9 +28,14 @@ class LearnerController extends Controller
             $mentorInfo = Mentor::where('ment_inf_id', $user->id)
                                ->where('approval_status', 'approved')
                                ->first();
+            
+            // Generate Cloudinary URL for the image
+            $imageUrl = $this->generateCloudinaryUrl($mentorInfo->image ?? null, 400);
+            
             return [
                 'user' => $user,
-                'mentor_infos' => $mentorInfo
+                'mentor_infos' => $mentorInfo,
+                'image_url' => $imageUrl
             ];
         });
 
@@ -44,8 +51,14 @@ class LearnerController extends Controller
 
         $user = User::where('id', $user_info->ment_inf_id)->first();
 
+        // Generate Cloudinary URL for the image
+        $imageUrl = $this->generateCloudinaryUrl($user_info->image ?? null, 400);
 
-        return response()->json(['user' => $user, 'user_info' => $user_info]);
+        return response()->json([
+            'user' => $user, 
+            'user_info' => $user_info,
+            'image_url' => $imageUrl
+        ]);
     }
 
     public function editInfo(Request $request)
@@ -98,8 +111,13 @@ class LearnerController extends Controller
         $user = Auth::user();
         $learn = learner::where('learn_inf_id', $user->id)->first();
 
-        // $ment->image = 'https://drive.google.com/uc?export=view&id='.$ment->image;
+        // Generate Cloudinary URL for the image
+        $imageUrl = $this->generateCloudinaryUrl($learn->image ?? null, 400);
 
-        return response()->json(['user' => $user, 'learn' => $learn]);
+        return response()->json([
+            'user' => $user, 
+            'learn' => $learn,
+            'image_url' => $imageUrl
+        ]);
     }
 }
