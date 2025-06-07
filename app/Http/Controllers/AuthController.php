@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\GdriveController;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\emailVerification;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\RateLimiter;
@@ -225,7 +224,7 @@ public function learner_register(Request $request)
     public function login(Request $request)
     {
         $request->validate([
-            'login' => 'required|string', // This will accept either email or ID
+            'login' => 'required|string',
             'password' => 'required',
         ]);
     
@@ -240,33 +239,22 @@ public function learner_register(Request $request)
     
         // Determine if input is email or ID
         $field = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'id';
-        $credentials = [
-            $field => $request->login,
-            'password' => $request->password
-        ];
-    
-        if (!Auth::guard('web')->attempt($credentials, true)) {
+        $user = User::where($field, $request->login)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             RateLimiter::hit($throttleKey);
             throw ValidationException::withMessages([
                 'login' => ['The provided credentials are incorrect.'],
             ]);
         }
-    
+
         RateLimiter::clear($throttleKey);
-        
-        // Get the authenticated user
-        $user = Auth::guard('web')->user();
         
         // Check if user is a mentor and verify approval status
         if ($user->role === 'mentor') {
             $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
             
             if (!$mentorInfo || $mentorInfo->approval_status !== 'approved') {
-                // Logout the user since they're not approved
-                Auth::guard('web')->logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                
                 return response()->json([
                     'error' => 'Mentor account not approved yet',
                     'status' => $mentorInfo ? $mentorInfo->approval_status : 'not_found',
@@ -274,95 +262,29 @@ public function learner_register(Request $request)
                 ], 403);
             }
         }
-    
-        $request->session()->regenerate();
+
+        // Delete existing tokens for this user (optional - for single session)
+        $user->tokens()->delete();
+
+        // Create new token
+        $token = $user->createToken('auth_token')->plainTextToken;
     
         return response()->json([
-            'message' => 'Login successful (cookie-based)',
+            'message' => 'Login successful',
+            'token' => $token,
             'user' => $user,
             'user_role' => $user->role
         ]);
     }
 
-    public function apiLogin(Request $request)
-    {
-        $request->validate([
-            'login' => 'required|string', // This will accept either email or ID
-            'password' => 'required',
-        ]);
-
-        // Determine if input is email or ID
-        $field = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'id';
-        
-        $user = User::where($field, $request->login)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'login' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-
-        // Check if user is a mentor and verify approval status
-        if ($user->role === 'mentor') {
-            $mentorInfo = Mentor::where('ment_inf_id', $user->id)->first();
-            
-            if (!$mentorInfo || $mentorInfo->approval_status !== 'approved') {
-                return response()->json([
-                    'error' => 'Mentor account not approved yet',
-                    'status' => $mentorInfo ? $mentorInfo->approval_status : 'not_found',
-                    'message' => 'Your mentor application is still under review. You will receive an email once approved.'
-                ], 403);
-            }
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-        
-        return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'user_role' => $user->role
-        ]);
-    }
-
-
     //logout
-    public function apiLogout(Request $request)
+    public function logout(Request $request)
     {
         // Delete all tokens for the current user
         $request->user()->tokens()->delete();
 
         return response()->json([
-            'message' => 'API logout successful'
-        ])->withHeaders([
-            'Access-Control-Allow-Credentials' => 'true',
-            'Access-Control-Allow-Origin' => config('cors.allowed_origins')
-        ]);
-    }
-
-    public function webLogout(Request $request)
-    {
-        // Delete all tokens for the current user if they exist
-        if ($request->user()) {
-            $request->user()->tokens()->delete();
-        }
-
-        // Handle web session logout
-        Auth::guard('web')->logout();
-        
-        // Invalidate the session
-        $request->session()->invalidate();
-        
-        // Regenerate CSRF token
-        $request->session()->regenerateToken();
-        
-        // Clear auth cookie
-        cookie()->forget('Authorization');
-
-        return response()->json([
-            'message' => 'Web session logout successful'
-        ])->withHeaders([
-            'Access-Control-Allow-Credentials' => 'true',
-            'Access-Control-Allow-Origin' => config('cors.allowed_origins')
+            'message' => 'Logout successful'
         ]);
     }
 
@@ -585,16 +507,17 @@ public function learner_register(Request $request)
         $user_info->secondary_role = $temp;
         $user_info->save();
 
-        // Logout user
-        Auth::guard('web')->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        // Delete current tokens and create new one
+        $user_info->tokens()->delete();
+        $token = $user_info->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Roles switched successfully. Please login again.',
+            'message' => 'Roles switched successfully.',
+            'token' => $token,
             'new_primary_role' => $user_info->role
         ]);
     }
+
     public function secondary_learner_register(Request $request)
 {
     $validated = $request->validate([
@@ -757,29 +680,29 @@ public function learner_register(Request $request)
         ]);
     }
 
-    public function authCheck(Request $request)
-    {
-        $user = Auth::user();
+    // public function authCheck(Request $request)
+    // {
+    //     $user = Auth::user(); // This will use the default guard (sanctum)
 
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthenticated.',
-                'authenticated' => false
-            ], 401);
-        }
+    //     if (!$user) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Unauthenticated.',
+    //             'authenticated' => false
+    //         ], 401);
+    //     }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User is authenticated',
-            'authenticated' => true,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'secondary_role' => $user->secondary_role
-            ]
-        ]);
-    }
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'User is authenticated',
+    //         'authenticated' => true,
+    //         'user' => [
+    //             'id' => $user->id,
+    //             'name' => $user->name,
+    //             'email' => $user->email,
+    //             'role' => $user->role,
+    //             'secondary_role' => $user->secondary_role
+    //         ]
+    //     ]);
+    // }
 }

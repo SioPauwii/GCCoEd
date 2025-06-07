@@ -23,35 +23,30 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
+// Public routes (no authentication required)
 Route::get('/user/role', [AuthController::class, 'getUserRole']);
-
 Route::get('/auth/check', [AuthController::class, 'authCheck']);
 
 Route::post('/learner/register', [AuthController::class, 'learner_register']);
-
 Route::post('/mentor/register', [AuthController::class, 'mentor_register']);
-
 Route::post('/learner/register/2nd', [AuthController::class, 'secondary_learner_register']);
-
 Route::post('/mentor/register/2nd', [AuthController::class, 'secondary_mentor_register']);
-
 Route::post('/admin/register', [AuthController::class, 'createAdmin']);
 
-Route::post('/login', [AuthController::class, 'login']);
-
-// Route::get('/login', [AuthController::class, 'login'])->name('login');
-
-Route::post('/APILogin', [AuthController::class, 'apiLogin']);
-
+Route::post('/login', [AuthController::class, 'login']); // Single login endpoint
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-
 Route::patch('/reset-password', [AuthController::class, 'resetPassword']);
 
-
-
+// Protected routes (require authentication token)
 Route::middleware(['auth:sanctum'])->group(function () {
+    
+    // Authentication routes
+    Route::post('/logout', [AuthController::class, 'logout']); // Single logout endpoint
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/set/2nd_role', [AuthController::class, 'setSecondaryRole']);
+    Route::post("/switch", [AuthController::class, 'switchRole']);
 
-    //image loader
+    // Image loader
     Route::get('/image/{id}', [GdriveController::class, 'streamImg']);
 
     // learner functions
@@ -61,9 +56,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/learner/users', [LearnerController::class, 'retAllMent'])
     ->middleware(checkRole::class.':learner');
-
-    // Route::get('/learner/schedule', [ScheduleController::class, 'getSchedLearner'])
-    // ->middleware(checkRole::class.':learner');
 
     Route::get('/learner/users/{id}', [LearnerController::class, 'retOneMent'])
     ->middleware(checkRole::class.':learner');
@@ -214,24 +206,31 @@ Route::post('/send/session/reminder', [emailNotifController::class, 'SessionRemi
 
 Route::get('/verify-email/{id}/{token}', function ($id, $token) {
     $user = User::find($id);
-
     if(!$user || $user->email_verification_token != $token) {
         return response()->json(['message' => 'Invalid verification link.'], 400);
     }
-
     $user->email_verified_at = now();
     $user->email_verification_token = null;
     $user->save();
-
     return response()->json(['message' => 'Email verified.']);
 });
-
-// Route::post('/message/{receiver_id}', [MessageController::class, 'store'])
-// ->middleware('auth:sanctum'); // Ensure the user is authenticated
-
-// Route::get('/message/{receiver_id}', [MessageController::class, 'conversation'])
-// ->middleware('auth:sanctum'); // Ensure the user is authenticated
 
 Route::get('/schedule/accept/{token}', [ScheduleController::class, 'acceptSchedule'])
     ->name('api.schedule.accept')
     ->middleware('signed');
+
+// Add a simple test route
+Route::get('/auth-test', function () {
+    return ['status' => 'success', 'message' => 'Authentication working'];
+})->middleware('auth:sanctum');
+
+// Memory debugging route (not protected)
+Route::get('/debug-memory', function () {
+    return [
+        'memory_limit' => ini_get('memory_limit'),
+        'memory_usage' => memory_get_usage(true) / 1024 / 1024 . ' MB',
+        'peak_memory_usage' => memory_get_peak_usage(true) / 1024 / 1024 . ' MB',
+    ];
+});
+
+

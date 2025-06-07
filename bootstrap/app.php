@@ -3,8 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\HandleCorsAndCookies;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,19 +12,23 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->statefulApi();
+        // Remove statefulApi() as we're using token-based auth
         
-        // Apply CORS middleware globally FIRST
+        // Keep CORS middleware
         $middleware->use([
-            \Illuminate\Http\Middleware\HandleCors::class, // Add Laravel's CORS middleware
-            HandleCorsAndCookies::class,
+            \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\HandleCorsAndCookies::class,
         ]);
         
-        // Add Sanctum's stateful middleware to API routes
+        // Modify Sanctum middleware for API routes - remove EnsureFrontendRequestsAreStateful
         $middleware->api(append: [
-            EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+
+

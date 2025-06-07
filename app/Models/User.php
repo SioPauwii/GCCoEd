@@ -2,17 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users'; 
     protected $primaryKey = 'id';
@@ -33,50 +31,32 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verification_token',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
-        'email_verification_token',
-        'email_verified_at',
-        'created_at',
-        'updated_at',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Get the mentor information associated with the user.
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($user) {
-            if (!$user->password) {
-                $user->password = bcrypt($user->id_number . '_default');
-            }
-        });
-    }
-
     public function mentor()
     {
         return $this->hasOne(Mentor::class, 'ment_inf_id', 'id');
     }
+
+    /**
+     * Get the learner information associated with the user.
+     */
     public function learner()
     {
         return $this->hasOne(Learner::class, 'learn_inf_id', 'id');
     }
 }
+
+
+

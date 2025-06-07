@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Authentication Defaults
@@ -14,7 +13,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'api'),
+        'guard' => env('AUTH_GUARD', 'sanctum'), // Change from 'api' to 'sanctum'
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -36,6 +35,11 @@ return [
     */
 
     'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+
         'api' => [
             'driver' => 'sanctum',
             'provider' => 'users',
@@ -111,5 +115,5 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
-
 ];
+
