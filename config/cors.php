@@ -14,42 +14,25 @@ return [
     |
     */
 
-    'paths' => [
-        'api/*',
-        'sanctum/csrf-cookie',
-        'login',
-        'logout',
-        'broadcasting/auth', // Important for private channels
-        'password/reset',
-        'password/email',
-        'register'
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => [
+        'https://gc-co-ed.vercel.app',
+        'https://gccoed.onrender.com',
     ],
-
-    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-
-    'allowed_origins' => ['http://localhost:5173', 'https://gc-co-ed.vercel.app'],
 
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => [
-        'X-CSRF-TOKEN',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Origin',
-        'X-XSRF-TOKEN',
-        'Access-Control-Allow-Origin',
-        'Access-Control-Allow-Methods',
-        'Access-Control-Allow-Headers',
-    ],
+    'allowed_headers' => ['*'],
 
     'exposed_headers' => [],
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false, // Important: false for token-based auth
 
     'same_site' => 'none',
 ];
