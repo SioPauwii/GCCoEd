@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\user_feedback as Feedback;
-use App\Models\Mentor;
-use App\Models\Schedule;
+use App\Models\mentor;
+use App\Models\schedule;
 use Illuminate\Support\Facades\DB;
 
 

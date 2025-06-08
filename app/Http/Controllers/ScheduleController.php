@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Schedule;
-use App\Models\Mentor;
-use App\Models\Learner;
+use App\Models\schedule;
+use App\Models\mentor;
+use App\Models\learner;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\learner;
 use App\Models\mentor;
-use App\Models\Schedule;
+use App\Models\schedule;
 use Cloudinary\Cloudinary;
 use Cloudinary\Transformation\Resize;
 
