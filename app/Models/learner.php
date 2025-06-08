@@ -6,6 +6,9 @@ use Hoa\Event\Listens;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Mentor;
+// use App\Models\Learner;
+use App\Models\User;
  
 
 class Learner extends Model

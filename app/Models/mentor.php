@@ -5,10 +5,13 @@ namespace App\Models;
 use Hoa\Event\Listens;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use App\Models\Mentor;
+use App\Models\Learner;
+use App\Models\User;
 
 class Mentor extends Model
 {
-    
+
     use HasFactory;
 
     protected $table = 'mentor_infos'; // Change this if your table name is different
