@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use App\Models\learner;
-use App\Models\mentor;
+use App\Models\Learner;
+use App\Models\Mentor;
 use App\Http\Controllers\GdriveController;
 use App\Traits\CloudinaryHelper;
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
  
 
-class learner extends Model
+class Learner extends Model
 {
     use HasFactory, Notifiable;
 

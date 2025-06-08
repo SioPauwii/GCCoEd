@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\schedule;
-use App\Models\learner;
-use App\Models\mentor;
+use App\Models\Schedule; 
+use App\Models\Learner;
+use App\Models\Mentor;
 use App\Mail\LearnerSessionReminderMail;
 use App\Mail\MentorSessionReminderMail;
 use Illuminate\Support\Facades\Mail;

@@ -8,9 +8,9 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\learner;
-use App\Models\mentor;
-use App\Models\schedule;
+use App\Models\Learner;
+use App\Models\Mentor;
+use App\Models\Schedule; 
 use App\Models\User;
 
 class MentorSessionReminderMail extends Mailable

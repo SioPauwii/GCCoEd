@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Models\learner;
-use App\Models\mentor;
-use App\Models\schedule;
+use App\Models\Learner;
+use App\Models\Mentor;
+use App\Models\Schedule; 
 use Cloudinary\Cloudinary;
 use Cloudinary\Transformation\Resize;
 

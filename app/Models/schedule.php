@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Schedule extends Model
 {
+    
     use HasFactory;
 
     protected $table = 'schedules'; // Change this if your table name is different

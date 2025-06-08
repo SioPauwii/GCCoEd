@@ -8,10 +8,10 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\schedule;
-use App\Models\mentor;
+use App\Models\Schedule; 
+use App\Models\Mentor;
 use App\Models\User;
-use App\Models\learner;
+use App\Models\Learner;
 use Illuminate\Support\Facades\Auth;
 
 class reSched extends Mailable
@@ -79,6 +79,7 @@ class reSched extends Mailable
             view: 'emails.reched',
         );
     }
+    
 
     /**
      * Get the attachments for the message.

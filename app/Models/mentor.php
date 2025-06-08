@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Mentor extends Model
 {
+    
     use HasFactory;
 
     protected $table = 'mentor_infos'; // Change this if your table name is different
